@@ -59,44 +59,59 @@ struct SignalGraphView: View {
     
     private var chartView: some View {
         Chart {
-            // Process each visible series
+            // First render all line-based series
             ForEach(0..<visibleSeries.count, id: \.self) { index in
                 let series = visibleSeries[index]
-                let points = pointsFor(series: series)
                 
-                // Draw connecting line if this should be shown as a line
-                //if !series.showPoints || series.showConnectingLine {
-                if series.showConnectingLine {
-                    // Determine correct line color
-                    let lineColor = series.showConnectingLine ? 
-                        (series.connectingLineColor ?? series.color.opacity(0.6)) : 
-                        series.color
-                        
+                // Only process line-based series in this loop
+                if !series.showPoints {
+                    let points = pointsFor(series: series)
+                    
                     // Draw line for this series
-                    ForEach(0..<points.count, id: \.self) { i in
-                        let point = points[i]
+                    ForEach(points) { point in
                         LineMark(
                             x: .value("Time", point.x),
                             y: .value("Value", point.y)
                         )
+                        .lineStyle(StrokeStyle(lineWidth: series.lineWidth))
                     }
-                    .foregroundStyle(lineColor)
-                    .lineStyle(StrokeStyle(lineWidth: series.lineWidth))
+                    // Let SwiftUI assign colors by series title
                     .foregroundStyle(by: .value("Series", series.title))
                 }
+            }
+            
+            // Then render all point-based series
+            ForEach(0..<visibleSeries.count, id: \.self) { index in
+                let series = visibleSeries[index]
                 
-                // Draw points if this series should have points
+                // Only process point-based series in this loop
                 if series.showPoints {
-                    // Draw points for this series
-                    ForEach(0..<points.count, id: \.self) { i in
-                        let point = points[i]
+                    let points = pointsFor(series: series)
+                    
+                    // First draw connecting line if needed
+                    if series.showConnectingLine {
+                        // Draw connecting line with darker variant
+                        ForEach(points) { point in
+                            LineMark(
+                                x: .value("Time", point.x),
+                                y: .value("Value", point.y)
+                            )
+                            .lineStyle(StrokeStyle(lineWidth: series.lineWidth))
+                            .opacity(0.6) // Make it slightly transparent
+                        }
+                        // Associate with same series but don't add to legend
+                        .foregroundStyle(by: .value("Series", series.title))
+                    }
+                    
+                    // Then draw points on top
+                    ForEach(points) { point in
                         PointMark(
                             x: .value("Time", point.x),
                             y: .value("Value", point.y)
                         )
+                        .symbolSize(series.symbolSize)
                     }
-                    .foregroundStyle(series.color)
-                    .symbolSize(series.symbolSize)
+                    // Let SwiftUI assign colors by series title
                     .foregroundStyle(by: .value("Series", series.title))
                 }
             }
