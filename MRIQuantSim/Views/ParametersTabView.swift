@@ -7,15 +7,37 @@
 
 import SwiftUI
 
-// Reusable collapsible section component
+// Reusable collapsible section component with state persistence
 struct CollapsibleSection<Content: View>: View {
     let title: String
+    let sectionId: String  // Unique identifier for persisting state
     @ViewBuilder let content: () -> Content
-    @State private var isExpanded: Bool = true
     @Environment(\.colorScheme) var colorScheme
+    
+    // State that persists to UserDefaults
+    @State private var isExpanded: Bool
+    
+    // Initializer to load persisted state
+    init(title: String, sectionId: String, @ViewBuilder content: @escaping () -> Content) {
+        self.title = title
+        self.sectionId = sectionId
+        self.content = content
+        
+        // Generate a consistent UserDefaults key
+        let defaultsKey = "CollapsibleSection_\(sectionId)"
+        
+        // Load initial state from UserDefaults, default to expanded if not found
+        let savedState = UserDefaults.standard.object(forKey: defaultsKey) as? Bool
+        _isExpanded = State(initialValue: savedState ?? true)
+    }
     
     private var sectionBackgroundColor: Color {
         colorScheme == .dark ? Color(white: 0.2) : Color(white: 0.95)
+    }
+    
+    private func persistExpandedState(_ isExpanded: Bool) {
+        let defaultsKey = "CollapsibleSection_\(sectionId)"
+        UserDefaults.standard.set(isExpanded, forKey: defaultsKey)
     }
     
     var body: some View {
@@ -24,6 +46,7 @@ struct CollapsibleSection<Content: View>: View {
             Button(action: {
                 withAnimation(.easeInOut(duration: 0.3)) {
                     isExpanded.toggle()
+                    persistExpandedState(isExpanded)
                 }
             }) {
                 HStack {
@@ -70,7 +93,7 @@ struct ParametersTabView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                CollapsibleSection(title: "Signal Parameters") {
+                CollapsibleSection(title: "Signal Parameters", sectionId: "signal_params") {
                     parameterRow(title: "CO2 Sampling Rate (Hz)", value: $parameters.co2SamplingRate)
                     parameterRow(title: "Breathing Rate (breaths/min)", value: $parameters.breathingRate)
                     parameterRow(title: "MRI Sampling Interval (s)", value: $parameters.mriSamplingInterval)
@@ -78,7 +101,7 @@ struct ParametersTabView: View {
                     parameterRow(title: "MRI Response Amplitude (a.u.)", value: $parameters.mriResponseAmplitude)
                 }
                 
-                CollapsibleSection(title: "Noise Parameters") {
+                CollapsibleSection(title: "Noise Parameters", sectionId: "noise_params") {
                     Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
                         .onChange(of: parameters.enableCO2Noise) { _, _ in onParameterChanged() }
                     
@@ -104,7 +127,7 @@ struct ParametersTabView: View {
                     )
                 }
                 
-                CollapsibleSection(title: "Drift Parameters") {
+                CollapsibleSection(title: "Drift Parameters", sectionId: "drift_params") {
                     Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
                         .onChange(of: parameters.enableCO2Drift) { _, _ in onParameterChanged() }
                     
@@ -148,7 +171,7 @@ struct ParametersTabView: View {
                     )
                 }
                 
-                CollapsibleSection(title: "Display Options") {
+                CollapsibleSection(title: "Display Options", sectionId: "display_options") {
                     Toggle("Show Raw CO2 Signal", isOn: $parameters.showCO2Raw)
                         .onChange(of: parameters.showCO2Raw) { _, _ in onParameterChanged() }
                     

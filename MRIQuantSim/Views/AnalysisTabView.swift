@@ -44,134 +44,113 @@ struct AnalysisTabView: View {
     }
     
     private var displayOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Display Options")
-                .font(.headline)
-                .padding(.bottom, 2)
-                
-            VStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 12) {
-                    // CO2 Signal group with left alignment
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("CO2 Signal")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 8) {
-                            ToggleButton(
-                                title: "Raw",
-                                isOn: $parameters.showCO2Raw,
-                                onChange: { onParameterChanged() }
-                            )
-                            
-                            ToggleButton(
-                                title: "End-Tidal",
-                                isOn: $parameters.showCO2EndTidal,
-                                onChange: { onParameterChanged() }
-                            )
-                            
-                            Spacer()
-                        }
-                    }
+        CollapsibleSection(title: "Display Options", sectionId: "analysis_display_options") {
+            VStack(alignment: .leading, spacing: 12) {
+                // CO2 Signal group with left alignment
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("CO2 Signal")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
                     
-                    // MRI Signal group with left alignment
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("MRI Signal")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                    HStack(spacing: 8) {
+                        ToggleButton(
+                            title: "Raw",
+                            isOn: $parameters.showCO2Raw,
+                            onChange: { onParameterChanged() }
+                        )
                         
-                        HStack(spacing: 8) {
-                            ToggleButton(
-                                title: "Raw",
-                                isOn: $parameters.showMRIRaw,
-                                onChange: { onParameterChanged() }
-                            )
-                            
-                            ToggleButton(
-                                title: "Detrended",
-                                isOn: $parameters.showMRIDetrended,
-                                onChange: { onParameterChanged() }
-                            )
-                            
-                            ToggleButton(
-                                title: "Model",
-                                isOn: $parameters.showModelOverlay,
-                                onChange: { onParameterChanged() }
-                            )
-                            
-                            Spacer()
-                        }
-                    }
-                    
-                    // Dynamic MRI Range option
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Scale Options")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
+                        ToggleButton(
+                            title: "End-Tidal",
+                            isOn: $parameters.showCO2EndTidal,
+                            onChange: { onParameterChanged() }
+                        )
                         
-                        Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
-                            .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                        Spacer()
                     }
-                    .padding(.top, 4)
-                    
-                    // Noise regeneration option
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Noise Options")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                        
-                        Button(action: {
-                            // Call the regenerate noise callback
-                            onRegenerateNoise()
-                        }) {
-                            HStack {
-                                Image(systemName: "waveform.path")
-                                Text("Re-generate MRI Noise")
-                            }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 12)
-                            .background(Color.accentColor)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .disabled(!parameters.enableMRINoise)
-                    }
-                    .padding(.top, 8)
                 }
+                
+                // MRI Signal group with left alignment
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("MRI Signal")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    HStack(spacing: 8) {
+                        ToggleButton(
+                            title: "Raw",
+                            isOn: $parameters.showMRIRaw,
+                            onChange: { onParameterChanged() }
+                        )
+                        
+                        ToggleButton(
+                            title: "Detrended",
+                            isOn: $parameters.showMRIDetrended,
+                            onChange: { onParameterChanged() }
+                        )
+                        
+                        ToggleButton(
+                            title: "Model",
+                            isOn: $parameters.showModelOverlay,
+                            onChange: { onParameterChanged() }
+                        )
+                        
+                        Spacer()
+                    }
+                }
+                
+                // Dynamic MRI Range option
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Scale Options")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
+                        .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                }
+                .padding(.top, 4)
+                
+                // Noise regeneration option
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Noise Options")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Button(action: {
+                        // Call the regenerate noise callback
+                        onRegenerateNoise()
+                    }) {
+                        HStack {
+                            Image(systemName: "waveform.path")
+                            Text("Re-generate MRI Noise")
+                        }
+                        .padding(.vertical, 6)
+                        .padding(.horizontal, 12)
+                        .background(Color.accentColor)
+                        .foregroundColor(.white)
+                        .cornerRadius(8)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(!parameters.enableMRINoise)
+                }
+                .padding(.top, 8)
             }
-            .padding(.leading, 8)
         }
-        .padding()
-        .background(sectionBackgroundColor)
-        .cornerRadius(10)
     }
     
     private var detrendingOptionsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Detrending Model Components")
-                .font(.headline)
-                .padding(.bottom, 2)
-                
+        // Get the shared CollapsibleSection component from ParametersTabView
+        CollapsibleSection(title: "Detrending Model Components", sectionId: "detrending_options") {
             VStack(alignment: .leading, spacing: 8) {
                 modelToggle(title: "Constant Term", isOn: $parameters.includeConstantTerm)
                 modelToggle(title: "Linear Term", isOn: $parameters.includeLinearTerm)
                 modelToggle(title: "Quadratic Term", isOn: $parameters.includeQuadraticTerm)
                 modelToggle(title: "Cubic Term", isOn: $parameters.includeCubicTerm)
             }
-            .padding(.leading, 8)
         }
-        .padding()
-        .background(sectionBackgroundColor)
-        .cornerRadius(10)
     }
     
     private var modelResultsSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Model Results")
-                .font(.headline)
-                .padding(.bottom, 2)
-                
+        CollapsibleSection(title: "Model Results", sectionId: "model_results") {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Percent Change:")
@@ -190,11 +169,7 @@ struct AnalysisTabView: View {
                     }
                 }
             }
-            .padding(.leading, 8)
         }
-        .padding()
-        .background(sectionBackgroundColor)
-        .cornerRadius(10)
     }
     
     private func modelToggle(title: String, isOn: Binding<Bool>) -> some View {
