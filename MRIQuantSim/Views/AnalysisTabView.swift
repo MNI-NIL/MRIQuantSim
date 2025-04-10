@@ -49,53 +49,70 @@ struct AnalysisTabView: View {
                 .padding(.bottom, 2)
                 
             VStack(spacing: 12) {
-                HStack {
-                    Text("CO2 Signal")
-                        .frame(width: 100, alignment: .leading)
-                    
-                    HStack(spacing: 8) {
-                        ToggleButton(
-                            title: "Raw",
-                            isOn: $parameters.showCO2Raw,
-                            onChange: { onParameterChanged() }
-                        )
+                VStack(alignment: .leading, spacing: 12) {
+                    // CO2 Signal group with left alignment
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CO2 Signal")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                         
-                        ToggleButton(
-                            title: "End-Tidal",
-                            isOn: $parameters.showCO2EndTidal,
-                            onChange: { onParameterChanged() }
-                        )
+                        HStack(spacing: 8) {
+                            ToggleButton(
+                                title: "Raw",
+                                isOn: $parameters.showCO2Raw,
+                                onChange: { onParameterChanged() }
+                            )
+                            
+                            ToggleButton(
+                                title: "End-Tidal",
+                                isOn: $parameters.showCO2EndTidal,
+                                onChange: { onParameterChanged() }
+                            )
+                            
+                            Spacer()
+                        }
                     }
-                }
-                
-                HStack {
-                    Text("MRI Signal")
-                        .frame(width: 100, alignment: .leading)
                     
-                    HStack(spacing: 8) {
-                        ToggleButton(
-                            title: "Raw",
-                            isOn: $parameters.showMRIRaw,
-                            onChange: { onParameterChanged() }
-                        )
+                    // MRI Signal group with left alignment
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MRI Signal")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
                         
-                        ToggleButton(
-                            title: "Detrended",
-                            isOn: $parameters.showMRIDetrended,
-                            onChange: { onParameterChanged() }
-                        )
-                        
-                        ToggleButton(
-                            title: "Model",
-                            isOn: $parameters.showModelOverlay,
-                            onChange: { onParameterChanged() }
-                        )
+                        HStack(spacing: 8) {
+                            ToggleButton(
+                                title: "Raw",
+                                isOn: $parameters.showMRIRaw,
+                                onChange: { onParameterChanged() }
+                            )
+                            
+                            ToggleButton(
+                                title: "Detrended",
+                                isOn: $parameters.showMRIDetrended,
+                                onChange: { onParameterChanged() }
+                            )
+                            
+                            ToggleButton(
+                                title: "Model",
+                                isOn: $parameters.showModelOverlay,
+                                onChange: { onParameterChanged() }
+                            )
+                            
+                            Spacer()
+                        }
                     }
-                }
-                
-                Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
+                    
+                    // Dynamic MRI Range option
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Scale Options")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
+                            .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                    }
                     .padding(.top, 4)
-                    .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                }
             }
             .padding(.leading, 8)
         }
