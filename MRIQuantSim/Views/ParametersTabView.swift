@@ -128,7 +128,8 @@ struct ParametersTabView: View {
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
-                .onChange(of: value.wrappedValue) { _, _ in onParameterChanged() }
+                // Use onSubmit instead of onChange to update only when editing is completed
+                .onSubmit { onParameterChanged() }
                 .disabled(disabled)
         }
     }
