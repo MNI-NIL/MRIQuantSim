@@ -9,7 +9,7 @@ import SwiftUI
 
 struct ParametersTabView: View {
     @Binding var parameters: SimulationParameters
-    @Binding var needsUpdate: Bool
+    var onParameterChanged: () -> Void
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -25,7 +25,7 @@ struct ParametersTabView: View {
                 
                 parameterSection(title: "Noise Parameters") {
                     Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
-                        .onChange(of: parameters.enableCO2Noise) { _, _ in needsUpdate = true }
+                        .onChange(of: parameters.enableCO2Noise) { _, _ in onParameterChanged() }
                     
                     parameterRow(
                         title: "CO2 Noise Frequency (Hz)", 
@@ -40,7 +40,7 @@ struct ParametersTabView: View {
                     )
                     
                     Toggle("Enable MRI Noise", isOn: $parameters.enableMRINoise)
-                        .onChange(of: parameters.enableMRINoise) { _, _ in needsUpdate = true }
+                        .onChange(of: parameters.enableMRINoise) { _, _ in onParameterChanged() }
                     
                     parameterRow(
                         title: "MRI Noise Amplitude (a.u.)",
@@ -51,7 +51,7 @@ struct ParametersTabView: View {
                 
                 parameterSection(title: "Drift Parameters") {
                     Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
-                        .onChange(of: parameters.enableCO2Drift) { _, _ in needsUpdate = true }
+                        .onChange(of: parameters.enableCO2Drift) { _, _ in onParameterChanged() }
                     
                     parameterRow(
                         title: "CO2 Linear Drift (mmHg)",
@@ -72,7 +72,7 @@ struct ParametersTabView: View {
                     )
                     
                     Toggle("Enable MRI Drift", isOn: $parameters.enableMRIDrift)
-                        .onChange(of: parameters.enableMRIDrift) { _, _ in needsUpdate = true }
+                        .onChange(of: parameters.enableMRIDrift) { _, _ in onParameterChanged() }
                     
                     parameterRow(
                         title: "MRI Linear Drift (%)",
@@ -128,7 +128,7 @@ struct ParametersTabView: View {
                     RoundedRectangle(cornerRadius: 6)
                         .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                 )
-                .onChange(of: value.wrappedValue) { _, _ in needsUpdate = true }
+                .onChange(of: value.wrappedValue) { _, _ in onParameterChanged() }
                 .disabled(disabled)
         }
     }
@@ -153,7 +153,7 @@ struct ParametersTabView_LightPreview: PreviewProvider {
     static var previews: some View {
         ParametersTabView(
             parameters: .constant(SimulationParameters()),
-            needsUpdate: .constant(false)
+            onParameterChanged: {}
         )
         .preferredColorScheme(.light)
     }
@@ -164,7 +164,7 @@ struct ParametersTabView_DarkPreview: PreviewProvider {
     static var previews: some View {
         ParametersTabView(
             parameters: .constant(SimulationParameters()),
-            needsUpdate: .constant(false)
+            onParameterChanged: {}
         )
         .preferredColorScheme(.dark)
     }

@@ -31,6 +31,20 @@ class SimulationData: ObservableObject {
     let enrichedAirMaxCO2: Double = 45.0 // mmHg
     
     func generateSimulatedData(parameters: SimulationParameters) {
+        // Reset all arrays to ensure clean state
+        co2RawSignal = []
+        co2EndTidalSignal = []
+        co2EndTidalTimes = []
+        mriRawSignal = []
+        mriDetrendedSignal = []
+        mriModeledSignal = []
+        co2TimePoints = []
+        mriTimePoints = []
+        co2BlockPattern = []
+        mriBlockPattern = []
+        betaParams = []
+        
+        // Generate new data
         generateCO2Signal(parameters: parameters)
         generateMRISignal(parameters: parameters)
         extractEndTidalCO2(parameters: parameters)
@@ -39,6 +53,9 @@ class SimulationData: ObservableObject {
         if parameters.showModelOverlay {
             performDetrendingAnalysis(parameters: parameters)
         }
+        
+        // Force UI refresh by triggering objectWillChange
+        self.objectWillChange.send()
     }
     
     private func generateCO2Signal(parameters: SimulationParameters) {

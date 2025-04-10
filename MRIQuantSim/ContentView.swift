@@ -9,13 +9,36 @@ import SwiftUI
 import SwiftData
 import Charts
 
+// Central simulator class to handle all updates
+class SimulationController: ObservableObject {
+    @Published var parameters = SimulationParameters()
+    @Published var simulationData = SimulationData()
+    
+    init() {
+        // Initial generation of data
+        updateSimulation()
+    }
+    
+    func updateSimulation() {
+        // Reset and regenerate all data
+        simulationData.generateSimulatedData(parameters: parameters)
+        
+        // Explicitly notify observers of change
+        objectWillChange.send()
+    }
+    
+    // Update when any parameter changes
+    func parameterChanged() {
+        updateSimulation()
+    }
+}
+
 struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var savedParameters: [SimulationParameters]
     
-    @State private var parameters = SimulationParameters()
-    @State private var simulationData = SimulationData()
-    @State private var needsUpdate = true
+    // Use StateObject to maintain the simulator between view refreshes
+    @StateObject private var simulator = SimulationController()
     @State private var selectedTab = 0
     
     var body: some View {
@@ -27,13 +50,13 @@ struct ContentView: View {
                     title: "CO2 Partial Pressure",
                     xLabel: "Time (s)",
                     yLabel: "pCO2 (mmHg)",
-                    timePoints: simulationData.co2TimePoints,
-                    dataPoints: simulationData.co2RawSignal,
-                    showRawData: parameters.showCO2Raw,
-                    additionalTimeSeries: parameters.showCO2EndTidal ? [
+                    timePoints: simulator.simulationData.co2TimePoints,
+                    dataPoints: simulator.simulationData.co2RawSignal,
+                    showRawData: simulator.parameters.showCO2Raw,
+                    additionalTimeSeries: simulator.parameters.showCO2EndTidal ? [
                         (
-                            times: simulationData.co2EndTidalTimes,
-                            values: simulationData.co2EndTidalSignal,
+                            times: simulator.simulationData.co2EndTidalTimes,
+                            values: simulator.simulationData.co2EndTidalSignal,
                             color: .red,
                             showPoints: true
                         )
@@ -46,9 +69,9 @@ struct ContentView: View {
                     title: "MRI Signal",
                     xLabel: "Time (s)",
                     yLabel: "Signal (a.u.)",
-                    timePoints: simulationData.mriTimePoints,
-                    dataPoints: simulationData.mriRawSignal,
-                    showRawData: parameters.showMRIRaw,
+                    timePoints: simulator.simulationData.mriTimePoints,
+                    dataPoints: simulator.simulationData.mriRawSignal,
+                    showRawData: simulator.parameters.showMRIRaw,
                     additionalTimeSeries: getAdditionalMRITimeSeries(),
                     yRange: getMRIYRange()
                 )
@@ -61,66 +84,58 @@ struct ContentView: View {
             
             // Tabs for Parameters and Analysis
             TabView(selection: $selectedTab) {
-                ParametersTabView(parameters: $parameters, needsUpdate: $needsUpdate)
-                    .tabItem {
-                        Label("Signal Parameters", systemImage: "waveform")
-                    }
-                    .tag(0)
+                ParametersTabView(
+                    parameters: $simulator.parameters,
+                    onParameterChanged: simulator.parameterChanged
+                )
+                .tabItem {
+                    Label("Signal Parameters", systemImage: "waveform")
+                }
+                .tag(0)
                 
-                AnalysisTabView(parameters: $parameters, simulationData: $simulationData, needsUpdate: $needsUpdate)
-                    .tabItem {
-                        Label("Analysis", systemImage: "chart.bar")
-                    }
-                    .tag(1)
+                AnalysisTabView(
+                    parameters: $simulator.parameters,
+                    simulationData: simulator.simulationData,
+                    onParameterChanged: simulator.parameterChanged
+                )
+                .tabItem {
+                    Label("Analysis", systemImage: "chart.bar")
+                }
+                .tag(1)
             }
             .frame(minHeight: 300)
         }
         .padding()
-        .onChange(of: needsUpdate) { _, newValue in
-            if newValue {
-                updateSimulation()
-                needsUpdate = false
-            }
-        }
-        // This is necessary to properly handle parameter changes
-        .onChange(of: parameters) { _, _ in 
-            updateSimulation()
-        }
         .onAppear {
             // Load parameters if available, otherwise use defaults
             if let savedParams = savedParameters.first {
-                parameters = savedParams
+                simulator.parameters = savedParams
+                simulator.updateSimulation()
             }
             
-            updateSimulation()
-        }
-    }
-    
-    private func updateSimulation() {
-        simulationData.generateSimulatedData(parameters: parameters)
-        
-        // Save parameters
-        if savedParameters.isEmpty {
-            modelContext.insert(parameters)
+            // Save parameters if none exist
+            if savedParameters.isEmpty {
+                modelContext.insert(simulator.parameters)
+            }
         }
     }
     
     private func getAdditionalMRITimeSeries() -> [(times: [Double], values: [Double], color: Color, showPoints: Bool)]? {
         var series: [(times: [Double], values: [Double], color: Color, showPoints: Bool)] = []
         
-        if parameters.showMRIDetrended {
+        if simulator.parameters.showMRIDetrended {
             series.append((
-                times: simulationData.mriTimePoints,
-                values: simulationData.mriDetrendedSignal,
+                times: simulator.simulationData.mriTimePoints,
+                values: simulator.simulationData.mriDetrendedSignal,
                 color: .green,
                 showPoints: false
             ))
         }
         
-        if parameters.showModelOverlay {
+        if simulator.parameters.showModelOverlay {
             series.append((
-                times: simulationData.mriTimePoints,
-                values: simulationData.mriModeledSignal,
+                times: simulator.simulationData.mriTimePoints,
+                values: simulator.simulationData.mriModeledSignal,
                 color: .orange,
                 showPoints: false
             ))
@@ -130,25 +145,25 @@ struct ContentView: View {
     }
     
     private func getMRIYRange() -> ClosedRange<Double>? {
-        if !parameters.useDynamicMRIRange {
+        if !simulator.parameters.useDynamicMRIRange {
             // Fixed range based on baseline
-            let baseline = parameters.mriBaselineSignal
+            let baseline = simulator.parameters.mriBaselineSignal
             return (baseline - 50)...(baseline + 50)
         }
         
         // Find min and max across all displayed signals
         var allValues: [Double] = []
         
-        if parameters.showMRIRaw {
-            allValues.append(contentsOf: simulationData.mriRawSignal)
+        if simulator.parameters.showMRIRaw {
+            allValues.append(contentsOf: simulator.simulationData.mriRawSignal)
         }
         
-        if parameters.showMRIDetrended {
-            allValues.append(contentsOf: simulationData.mriDetrendedSignal)
+        if simulator.parameters.showMRIDetrended {
+            allValues.append(contentsOf: simulator.simulationData.mriDetrendedSignal)
         }
         
-        if parameters.showModelOverlay {
-            allValues.append(contentsOf: simulationData.mriModeledSignal)
+        if simulator.parameters.showModelOverlay {
+            allValues.append(contentsOf: simulator.simulationData.mriModeledSignal)
         }
         
         if allValues.isEmpty {
@@ -161,9 +176,4 @@ struct ContentView: View {
         
         return (min - buffer)...(max + buffer)
     }
-}
-
-#Preview {
-    ContentView()
-        .modelContainer(for: SimulationParameters.self, inMemory: true)
 }

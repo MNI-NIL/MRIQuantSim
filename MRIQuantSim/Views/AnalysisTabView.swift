@@ -9,8 +9,8 @@ import SwiftUI
 
 struct AnalysisTabView: View {
     @Binding var parameters: SimulationParameters
-    @Binding var simulationData: SimulationData
-    @Binding var needsUpdate: Bool
+    let simulationData: SimulationData
+    var onParameterChanged: () -> Void
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -42,13 +42,13 @@ struct AnalysisTabView: View {
                         ToggleButton(
                             title: "Raw",
                             isOn: $parameters.showCO2Raw,
-                            onChange: { needsUpdate = true }
+                            onChange: { onParameterChanged() }
                         )
                         
                         ToggleButton(
                             title: "End-Tidal",
                             isOn: $parameters.showCO2EndTidal,
-                            onChange: { needsUpdate = true }
+                            onChange: { onParameterChanged() }
                         )
                     }
                 }
@@ -61,26 +61,26 @@ struct AnalysisTabView: View {
                         ToggleButton(
                             title: "Raw",
                             isOn: $parameters.showMRIRaw,
-                            onChange: { needsUpdate = true }
+                            onChange: { onParameterChanged() }
                         )
                         
                         ToggleButton(
                             title: "Detrended",
                             isOn: $parameters.showMRIDetrended,
-                            onChange: { needsUpdate = true }
+                            onChange: { onParameterChanged() }
                         )
                         
                         ToggleButton(
                             title: "Model",
                             isOn: $parameters.showModelOverlay,
-                            onChange: { needsUpdate = true }
+                            onChange: { onParameterChanged() }
                         )
                     }
                 }
                 
                 Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
                     .padding(.top, 4)
-                    .onChange(of: parameters.useDynamicMRIRange) { _, _ in needsUpdate = true }
+                    .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
             }
             .padding(.leading, 8)
         }
@@ -141,7 +141,7 @@ struct AnalysisTabView: View {
     
     private func modelToggle(title: String, isOn: Binding<Bool>) -> some View {
         Toggle(title, isOn: isOn)
-            .onChange(of: isOn.wrappedValue) { _, _ in needsUpdate = true }
+            .onChange(of: isOn.wrappedValue) { _, _ in onParameterChanged() }
     }
     
     private func betaParamName(index: Int) -> String {
@@ -197,15 +197,14 @@ struct ToggleButton: View {
 // Preview light mode
 struct AnalysisTabView_LightPreview: PreviewProvider {
     static var previews: some View {
-        let parameters = SimulationParameters()
-        let simulationData = SimulationData()
-        simulationData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
-        simulationData.percentChangeMetric = 2.08
+        let simData = SimulationData()
+        simData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
+        simData.percentChangeMetric = 2.08
         
         return AnalysisTabView(
-            parameters: .constant(parameters),
-            simulationData: .constant(simulationData), 
-            needsUpdate: .constant(false)
+            parameters: .constant(SimulationParameters()),
+            simulationData: simData,
+            onParameterChanged: {}
         )
         .preferredColorScheme(.light)
     }
@@ -214,15 +213,14 @@ struct AnalysisTabView_LightPreview: PreviewProvider {
 // Preview dark mode
 struct AnalysisTabView_DarkPreview: PreviewProvider {
     static var previews: some View {
-        let parameters = SimulationParameters()
-        let simulationData = SimulationData()
-        simulationData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
-        simulationData.percentChangeMetric = 2.08
+        let simData = SimulationData()
+        simData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
+        simData.percentChangeMetric = 2.08
         
         return AnalysisTabView(
-            parameters: .constant(parameters),
-            simulationData: .constant(simulationData), 
-            needsUpdate: .constant(false)
+            parameters: .constant(SimulationParameters()),
+            simulationData: simData,
+            onParameterChanged: {}
         )
         .preferredColorScheme(.dark)
     }
