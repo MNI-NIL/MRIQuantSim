@@ -16,10 +16,25 @@ struct AnalysisTabView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                displayOptionsSection
+                // Place Display Options and Detrending Model Components side by side
+                HStack(alignment: .top, spacing: 16) {
+                    displayOptionsSection
+                        .frame(maxWidth: .infinity)
+                    
+                    // If model overlay is not shown, display an empty spacer with same width
+                    if parameters.showModelOverlay {
+                        detrendingOptionsSection
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        // This is an invisible placeholder with the same size to maintain layout
+                        Color.clear
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity)
                 
+                // Model Results section remains full width
                 if parameters.showModelOverlay {
-                    detrendingOptionsSection
                     modelResultsSection
                 }
             }
