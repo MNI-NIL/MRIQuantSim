@@ -139,11 +139,9 @@ struct ContentView: View {
                                   simulator.simulationData.mriDetrendedSignal.count)
                 
                 if dataCount > 0 {
-                    // Create a slightly offset set of time points to ensure separate series
-                    let timePoints = Array(simulator.simulationData.mriTimePoints.prefix(dataCount))
-                    
+                    // Use the same time points but with UUID to ensure full separation between series
                     series.append((
-                        times: timePoints,
+                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
                         values: Array(simulator.simulationData.mriDetrendedSignal.prefix(dataCount)),
                         color: .green,
                         showPoints: false
@@ -157,11 +155,9 @@ struct ContentView: View {
                                   simulator.simulationData.mriModeledSignal.count)
                 
                 if dataCount > 0 {
-                    // Create a slightly offset set of time points to ensure separate series 
-                    let timePoints = Array(simulator.simulationData.mriTimePoints.prefix(dataCount))
-                    
+                    // Use the same time points but with UUID to ensure full separation between series
                     series.append((
-                        times: timePoints,
+                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
                         values: Array(simulator.simulationData.mriModeledSignal.prefix(dataCount)),
                         color: .orange,
                         showPoints: false
