@@ -11,6 +11,7 @@ struct AnalysisTabView: View {
     @Binding var parameters: SimulationParameters
     let simulationData: SimulationData
     var onParameterChanged: () -> Void
+    var onRegenerateNoise: () -> Void // Add a new callback for noise regeneration
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -112,6 +113,31 @@ struct AnalysisTabView: View {
                             .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
                     }
                     .padding(.top, 4)
+                    
+                    // Noise regeneration option
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Noise Options")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Button(action: {
+                            // Call the regenerate noise callback
+                            onRegenerateNoise()
+                        }) {
+                            HStack {
+                                Image(systemName: "waveform.path")
+                                Text("Re-generate MRI Noise")
+                            }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!parameters.enableMRINoise)
+                    }
+                    .padding(.top, 8)
                 }
             }
             .padding(.leading, 8)
@@ -236,7 +262,8 @@ struct AnalysisTabView_LightPreview: PreviewProvider {
         return AnalysisTabView(
             parameters: .constant(SimulationParameters()),
             simulationData: simData,
-            onParameterChanged: {}
+            onParameterChanged: {},
+            onRegenerateNoise: {}
         )
         .preferredColorScheme(.light)
     }
@@ -252,7 +279,8 @@ struct AnalysisTabView_DarkPreview: PreviewProvider {
         return AnalysisTabView(
             parameters: .constant(SimulationParameters()),
             simulationData: simData,
-            onParameterChanged: {}
+            onParameterChanged: {},
+            onRegenerateNoise: {}
         )
         .preferredColorScheme(.dark)
     }

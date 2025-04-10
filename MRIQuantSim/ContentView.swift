@@ -22,14 +22,14 @@ class SimulationController: ObservableObject {
         // This avoids potential crashes during init
     }
     
-    func updateSimulation() {
+    func updateSimulation(regenerateNoise: Bool = false) {
         // Safety check to prevent crashes - ensure object is fully initialized
         if !isInitialized {
             isInitialized = true
         }
         
         // Reset and regenerate all data
-        simulationData.generateSimulatedData(parameters: parameters)
+        simulationData.generateSimulatedData(parameters: parameters, regenerateNoise: regenerateNoise)
         
         // Explicitly notify observers of change
         objectWillChange.send()
@@ -37,7 +37,13 @@ class SimulationController: ObservableObject {
     
     // Update when any parameter changes
     func parameterChanged() {
-        updateSimulation()
+        updateSimulation(regenerateNoise: false)
+    }
+    
+    // Method specifically for regenerating MRI noise
+    func regenerateMRINoise() {
+        simulationData.regenerateMRINoise(parameters: parameters)
+        objectWillChange.send()
     }
 }
 
@@ -97,7 +103,8 @@ struct ContentView: View {
                 AnalysisTabView(
                     parameters: $simulator.parameters,
                     simulationData: simulator.simulationData,
-                    onParameterChanged: simulator.parameterChanged
+                    onParameterChanged: simulator.parameterChanged,
+                    onRegenerateNoise: simulator.regenerateMRINoise
                 )
                 .tabItem {
                     Label("Analysis", systemImage: "chart.bar")

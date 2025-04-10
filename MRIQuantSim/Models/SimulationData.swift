@@ -22,6 +22,9 @@ class SimulationData: ObservableObject {
     @Published var betaParams: [Double] = []
     @Published var percentChangeMetric: Double = 0.0
     
+    // Store noise values separately so they can be reused
+    private var mriNoiseValues: [Double] = []
+    
     // Constants for the simulation
     let totalDuration: Double = 300.0 // 5 minutes in seconds
     let blockDuration: Double = 60.0 // 1 minute in seconds
@@ -30,7 +33,7 @@ class SimulationData: ObservableObject {
     let enrichedAirMinCO2: Double = 38.0 // mmHg (5% of 760mmHg)
     let enrichedAirMaxCO2: Double = 45.0 // mmHg
     
-    func generateSimulatedData(parameters: SimulationParameters) {
+    func generateSimulatedData(parameters: SimulationParameters, regenerateNoise: Bool = false) {
         // Reset all arrays to ensure clean state
         co2RawSignal = []
         co2EndTidalSignal = []
@@ -46,7 +49,7 @@ class SimulationData: ObservableObject {
         
         // Generate new data
         generateCO2Signal(parameters: parameters)
-        generateMRISignal(parameters: parameters)
+        generateMRISignal(parameters: parameters, regenerateNoise: regenerateNoise)
         extractEndTidalCO2(parameters: parameters)
         generateBlockPatterns(parameters: parameters)
         
@@ -102,7 +105,7 @@ class SimulationData: ObservableObject {
         }
     }
     
-    private func generateMRISignal(parameters: SimulationParameters) {
+    private func generateMRISignal(parameters: SimulationParameters, regenerateNoise: Bool = false) {
         let samplingInterval = parameters.mriSamplingInterval
         let totalSamples = Int(totalDuration / samplingInterval) + 1
         
@@ -113,6 +116,31 @@ class SimulationData: ObservableObject {
         
         mriRawSignal = Array(repeating: 0.0, count: totalSamples)
         
+        // Generate or regenerate noise if needed
+        if mriNoiseValues.isEmpty || regenerateNoise || mriNoiseValues.count != totalSamples {
+            print("Generating new noise values (regenerateNoise=\(regenerateNoise), isEmpty=\(mriNoiseValues.isEmpty), countMismatch=\(mriNoiseValues.count != totalSamples))")
+            
+            // Always start with zeroes
+            mriNoiseValues = Array(repeating: 0.0, count: totalSamples)
+            
+            if parameters.enableMRINoise {
+                // Generate Gaussian noise for each time point
+                for i in 0..<totalSamples {
+                    let noiseStdDev = parameters.mriNoiseAmplitude
+                    let u1 = Double.random(in: 0..<1)
+                    let u2 = Double.random(in: 0..<1)
+                    let z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * Double.pi * u2)
+                    mriNoiseValues[i] = z0 * noiseStdDev
+                }
+                
+                // Print the first few noise values for debugging
+                if totalSamples > 0 {
+                    print("First noise value: \(mriNoiseValues[0])")
+                }
+            }
+        }
+        
+        // Generate signal with consistent noise
         for i in 0..<totalSamples {
             let time = mriTimePoints[i]
             
@@ -126,14 +154,9 @@ class SimulationData: ObservableObject {
                 signalValue += parameters.mriResponseAmplitude
             }
             
-            // Add noise if enabled
+            // Add pre-computed noise if enabled
             if parameters.enableMRINoise {
-                // Gaussian noise
-                let noiseStdDev = parameters.mriNoiseAmplitude
-                let u1 = Double.random(in: 0..<1)
-                let u2 = Double.random(in: 0..<1)
-                let z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * Double.pi * u2)
-                signalValue += z0 * noiseStdDev
+                signalValue += mriNoiseValues[i]
             }
             
             // Add drift terms if enabled
@@ -150,6 +173,29 @@ class SimulationData: ObservableObject {
         // Initialize detrended signal as a copy of raw signal
         mriDetrendedSignal = mriRawSignal
         mriModeledSignal = mriRawSignal
+    }
+    
+    /// Public method to regenerate MRI noise values
+    func regenerateMRINoise(parameters: SimulationParameters) {
+        // First, explicitly clear the noise values to force regeneration
+        mriNoiseValues = []
+        
+        // Regenerate the signal with new noise
+        generateMRISignal(parameters: parameters, regenerateNoise: true)
+        
+        // Re-run downstream analysis that depends on the signal
+        extractEndTidalCO2(parameters: parameters)
+        generateBlockPatterns(parameters: parameters)
+        
+        if parameters.showModelOverlay {
+            performDetrendingAnalysis(parameters: parameters)
+        }
+        
+        // Print some debug info - will appear in console
+        print("MRI Noise regenerated, \(mriNoiseValues.count) values")
+        
+        // Force UI refresh
+        objectWillChange.send()
     }
     
     private func extractEndTidalCO2(parameters: SimulationParameters) {
