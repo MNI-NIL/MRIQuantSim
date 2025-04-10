@@ -156,16 +156,24 @@ class SimulationData: ObservableObject {
         co2EndTidalSignal = []
         co2EndTidalTimes = []
         
-        // Look for local maxima in the CO2 signal to identify end-tidal points
-        let windowSize = max(1, Int(60.0 / parameters.breathingRate * parameters.co2SamplingRate))
-        
-        for i in windowSize..<co2RawSignal.count - windowSize {
-            let startIdx = max(0, i-windowSize)
-            let endIdx = min(co2RawSignal.count - 1, i+windowSize)
-            let localWindow = co2RawSignal[startIdx...endIdx]
-            if co2RawSignal[i] == localWindow.max() {
-                co2EndTidalSignal.append(co2RawSignal[i])
-                co2EndTidalTimes.append(co2TimePoints[i])
+        // Skip first and last points to avoid edge effects
+        // Simple approach: a point is a local maximum if it's higher than both adjacent points
+        for i in 1..<co2RawSignal.count - 1 {
+            if co2RawSignal[i] > co2RawSignal[i-1] && co2RawSignal[i] > co2RawSignal[i+1] {
+                // To refine further, check if this is truly the peak of a breath cycle
+                // Estimate points per breath cycle
+                let pointsPerBreath = parameters.co2SamplingRate * 60.0 / parameters.breathingRate
+                
+                // Find the local maximum within a narrower window (1/4 of a breath cycle)
+                let halfWindow = max(2, Int(pointsPerBreath / 4))
+                let startIdx = max(0, i - halfWindow)
+                let endIdx = min(co2RawSignal.count - 1, i + halfWindow)
+                
+                // Only keep this point if it's the maximum in this smaller window
+                if co2RawSignal[i] == co2RawSignal[startIdx...endIdx].max() {
+                    co2EndTidalSignal.append(co2RawSignal[i])
+                    co2EndTidalTimes.append(co2TimePoints[i])
+                }
             }
         }
     }
