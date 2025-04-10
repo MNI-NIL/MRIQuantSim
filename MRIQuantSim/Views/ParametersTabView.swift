@@ -7,6 +7,61 @@
 
 import SwiftUI
 
+// Reusable collapsible section component
+struct CollapsibleSection<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+    @State private var isExpanded: Bool = true
+    @Environment(\.colorScheme) var colorScheme
+    
+    private var sectionBackgroundColor: Color {
+        colorScheme == .dark ? Color(white: 0.2) : Color(white: 0.95)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header with chevron
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    isExpanded.toggle()
+                }
+            }) {
+                HStack {
+                    Text(title)
+                        .font(.headline)
+                    
+                    Spacer()
+                    
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 14))
+                        .foregroundColor(.gray)
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .background(sectionBackgroundColor)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(PlainButtonStyle())
+            
+            // Content that can collapse
+            if isExpanded {
+                VStack(alignment: .leading, spacing: 10) {
+                    content()
+                        .padding(.leading, 8)
+                }
+                .padding()
+                .background(sectionBackgroundColor)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+        )
+    }
+}
+
 struct ParametersTabView: View {
     @Binding var parameters: SimulationParameters
     var onParameterChanged: () -> Void
@@ -15,7 +70,7 @@ struct ParametersTabView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                parameterSection(title: "Signal Parameters") {
+                CollapsibleSection(title: "Signal Parameters") {
                     parameterRow(title: "CO2 Sampling Rate (Hz)", value: $parameters.co2SamplingRate)
                     parameterRow(title: "Breathing Rate (breaths/min)", value: $parameters.breathingRate)
                     parameterRow(title: "MRI Sampling Interval (s)", value: $parameters.mriSamplingInterval)
@@ -23,7 +78,7 @@ struct ParametersTabView: View {
                     parameterRow(title: "MRI Response Amplitude (a.u.)", value: $parameters.mriResponseAmplitude)
                 }
                 
-                parameterSection(title: "Noise Parameters") {
+                CollapsibleSection(title: "Noise Parameters") {
                     Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
                         .onChange(of: parameters.enableCO2Noise) { _, _ in onParameterChanged() }
                     
@@ -49,7 +104,7 @@ struct ParametersTabView: View {
                     )
                 }
                 
-                parameterSection(title: "Drift Parameters") {
+                CollapsibleSection(title: "Drift Parameters") {
                     Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
                         .onChange(of: parameters.enableCO2Drift) { _, _ in onParameterChanged() }
                     
@@ -92,24 +147,29 @@ struct ParametersTabView: View {
                         disabled: !parameters.enableMRIDrift
                     )
                 }
+                
+                CollapsibleSection(title: "Display Options") {
+                    Toggle("Show Raw CO2 Signal", isOn: $parameters.showCO2Raw)
+                        .onChange(of: parameters.showCO2Raw) { _, _ in onParameterChanged() }
+                    
+                    Toggle("Show End-Tidal CO2 Points", isOn: $parameters.showCO2EndTidal)
+                        .onChange(of: parameters.showCO2EndTidal) { _, _ in onParameterChanged() }
+                    
+                    Toggle("Show Raw MRI Signal", isOn: $parameters.showMRIRaw)
+                        .onChange(of: parameters.showMRIRaw) { _, _ in onParameterChanged() }
+                    
+                    Toggle("Show Detrended MRI Signal", isOn: $parameters.showMRIDetrended)
+                        .onChange(of: parameters.showMRIDetrended) { _, _ in onParameterChanged() }
+                    
+                    Toggle("Show Model Overlay", isOn: $parameters.showModelOverlay)
+                        .onChange(of: parameters.showModelOverlay) { _, _ in onParameterChanged() }
+                    
+                    Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
+                        .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                }
             }
             .padding()
         }
-    }
-    
-    @ViewBuilder
-    private func parameterSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text(title)
-                .font(.headline)
-                .padding(.bottom, 2)
-            
-            content()
-                .padding(.leading, 8)
-        }
-        .padding()
-        .background(sectionBackgroundColor)
-        .cornerRadius(10)
     }
     
     private func parameterRow(title: String, value: Binding<Double>, disabled: Bool = false) -> some View {
@@ -135,10 +195,6 @@ struct ParametersTabView: View {
     }
     
     // MARK: - Color helpers for dark mode support
-    
-    private var sectionBackgroundColor: Color {
-        colorScheme == .dark ? Color(white: 0.2) : Color(white: 0.95)
-    }
     
     private var textFieldBackgroundColor: Color {
         colorScheme == .dark ? Color(white: 0.15) : Color.white
