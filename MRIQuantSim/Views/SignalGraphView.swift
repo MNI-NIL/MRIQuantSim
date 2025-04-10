@@ -8,6 +8,22 @@
 import SwiftUI
 import Charts
 
+// Define a struct to hold each data point
+struct DataPoint: Identifiable {
+    let id = UUID()
+    let x: Double
+    let y: Double
+}
+
+// Define a struct for each data series
+struct DataSeries: Identifiable {
+    let id = UUID()
+    let points: [DataPoint]
+    let color: Color
+    let showPoints: Bool
+    let seriesName: String
+}
+
 struct SignalGraphView: View {
     let title: String
     let xLabel: String
@@ -18,98 +34,91 @@ struct SignalGraphView: View {
     let additionalTimeSeries: [(times: [Double], values: [Double], color: Color, showPoints: Bool)]?
     let yRange: ClosedRange<Double>?
     
+    // Process data into series
+    private var allSeries: [DataSeries] {
+        var result: [DataSeries] = []
+        
+        // Add main series if needed
+        if showRawData && !timePoints.isEmpty && !dataPoints.isEmpty {
+            let mainPoints = zip(timePoints, dataPoints)
+                .prefix(min(timePoints.count, dataPoints.count))
+                .map { DataPoint(x: $0.0, y: $0.1) }
+            
+            result.append(DataSeries(
+                points: mainPoints,
+                color: .blue,
+                showPoints: false,
+                seriesName: "Raw"
+            ))
+        }
+        
+        // Add additional series
+        if let additionalSeries = additionalTimeSeries {
+            for (idx, series) in additionalSeries.enumerated() {
+                if !series.times.isEmpty && !series.values.isEmpty {
+                    let count = min(series.times.count, series.values.count)
+                    let points = zip(series.times, series.values)
+                        .prefix(count)
+                        .map { DataPoint(x: $0.0, y: $0.1) }
+                    
+                    result.append(DataSeries(
+                        points: points,
+                        color: series.color,
+                        showPoints: series.showPoints,
+                        seriesName: "Series\(idx)"
+                    ))
+                }
+            }
+        }
+        
+        return result
+    }
+    
     var body: some View {
         VStack(alignment: .leading) {
             Text(title)
                 .font(.headline)
             
             if let range = yRange {
-                chartViewWithRange(range)
+                chart
+                    .chartYScale(domain: range)
                     .frame(height: 200)
             } else {
-                chartViewWithoutRange
+                chart
                     .frame(height: 200)
             }
         }
         .padding()
     }
     
-    private var chartViewWithoutRange: some View {
+    private var chart: some View {
         Chart {
-            // Main data series
-            if showRawData {
-                mainDataSeries
-            }
-            
-            // Additional time series if provided
-            if let additionalSeries = additionalTimeSeries {
-                additionalDataSeries(additionalSeries)
+            ForEach(allSeries) { series in
+                // For each series, create a separate ForEach with different ID
+                if series.showPoints {
+                    // Point series - just show points
+                    ForEach(series.points) { point in
+                        PointMark(
+                            x: .value("\(xLabel) (\(series.seriesName))", point.x),
+                            y: .value(yLabel, point.y)
+                        )
+                        .foregroundStyle(series.color)
+                    }
+                } else {
+                    // Line series - create individual points
+                    ForEach(series.points) { point in
+                        LineMark(
+                            x: .value("\(xLabel) (\(series.seriesName))", point.x),
+                            y: .value(yLabel, point.y)
+                        )
+                        .foregroundStyle(series.color)
+                        .lineStyle(StrokeStyle(lineWidth: series.seriesName == "Raw" ? 2 : 1))
+                    }
+                }
             }
         }
         .chartXAxisLabel(xLabel)
         .chartYAxisLabel(yLabel)
-    }
-    
-    private func chartViewWithRange(_ range: ClosedRange<Double>) -> some View {
-        Chart {
-            // Main data series
-            if showRawData {
-                mainDataSeries
-            }
-            
-            // Additional time series if provided
-            if let additionalSeries = additionalTimeSeries {
-                additionalDataSeries(additionalSeries)
-            }
-        }
-        .chartXAxisLabel(xLabel)
-        .chartYAxisLabel(yLabel)
-        .chartYScale(domain: range)
-    }
-    
-    @ChartContentBuilder
-    private var mainDataSeries: some ChartContent {
-        ForEach(0..<timePoints.count, id: \.self) { i in
-            LineMark(
-                x: .value(xLabel, timePoints[i]),
-                y: .value(yLabel, dataPoints[i])
-            )
-            .foregroundStyle(.blue)
-        }
-    }
-    
-    @ChartContentBuilder
-    private func additionalDataSeries(_ series: [(times: [Double], values: [Double], color: Color, showPoints: Bool)]) -> some ChartContent {
-        ForEach(0..<series.count, id: \.self) { seriesIndex in
-            let currentSeries = series[seriesIndex]
-            seriesLines(currentSeries)
-            
-            if currentSeries.showPoints {
-                seriesPoints(currentSeries)
-            }
-        }
-    }
-    
-    @ChartContentBuilder
-    private func seriesLines(_ series: (times: [Double], values: [Double], color: Color, showPoints: Bool)) -> some ChartContent {
-        ForEach(0..<series.times.count, id: \.self) { i in
-            LineMark(
-                x: .value(xLabel, series.times[i]),
-                y: .value(yLabel, series.values[i])
-            )
-            .foregroundStyle(series.color)
-        }
-    }
-    
-    @ChartContentBuilder
-    private func seriesPoints(_ series: (times: [Double], values: [Double], color: Color, showPoints: Bool)) -> some ChartContent {
-        ForEach(0..<series.times.count, id: \.self) { i in
-            PointMark(
-                x: .value(xLabel, series.times[i]),
-                y: .value(yLabel, series.values[i])
-            )
-            .foregroundStyle(series.color)
-        }
     }
 }
 

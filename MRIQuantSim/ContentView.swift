@@ -14,12 +14,20 @@ class SimulationController: ObservableObject {
     @Published var parameters = SimulationParameters()
     @Published var simulationData = SimulationData()
     
+    // Property to track initialization state
+    private var isInitialized = false
+    
     init() {
-        // Initial generation of data
-        updateSimulation()
+        // Defer data generation until view appears
+        // This avoids potential crashes during init
     }
     
     func updateSimulation() {
+        // Safety check to prevent crashes - ensure object is fully initialized
+        if !isInitialized {
+            isInitialized = true
+        }
+        
         // Reset and regenerate all data
         simulationData.generateSimulatedData(parameters: parameters)
         
@@ -107,15 +115,20 @@ struct ContentView: View {
         }
         .padding()
         .onAppear {
-            // Load parameters if available, otherwise use defaults
-            if let savedParams = savedParameters.first {
-                simulator.parameters = savedParams
+            // Delay just slightly to ensure view is fully initialized
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                // Load parameters if available, otherwise use defaults
+                if let savedParams = savedParameters.first {
+                    simulator.parameters = savedParams
+                }
+                
+                // Save parameters if none exist
+                if savedParameters.isEmpty {
+                    modelContext.insert(simulator.parameters)
+                }
+                
+                // Generate simulation data after view has appeared
                 simulator.updateSimulation()
-            }
-            
-            // Save parameters if none exist
-            if savedParameters.isEmpty {
-                modelContext.insert(simulator.parameters)
             }
         }
     }
@@ -123,32 +136,59 @@ struct ContentView: View {
     private func getAdditionalMRITimeSeries() -> [(times: [Double], values: [Double], color: Color, showPoints: Bool)]? {
         var series: [(times: [Double], values: [Double], color: Color, showPoints: Bool)] = []
         
-        if simulator.parameters.showMRIDetrended {
-            series.append((
-                times: simulator.simulationData.mriTimePoints,
-                values: simulator.simulationData.mriDetrendedSignal,
-                color: .green,
-                showPoints: false
-            ))
-        }
+        // Safety check to ensure we have data
+        let hasValidMRIData = !simulator.simulationData.mriTimePoints.isEmpty && 
+                             !simulator.simulationData.mriDetrendedSignal.isEmpty && 
+                             !simulator.simulationData.mriModeledSignal.isEmpty
         
-        if simulator.parameters.showModelOverlay {
-            series.append((
-                times: simulator.simulationData.mriTimePoints,
-                values: simulator.simulationData.mriModeledSignal,
-                color: .orange,
-                showPoints: false
-            ))
+        if hasValidMRIData {
+            if simulator.parameters.showMRIDetrended {
+                // Ensure data arrays are the same length
+                let dataCount = min(simulator.simulationData.mriTimePoints.count, 
+                                   simulator.simulationData.mriDetrendedSignal.count)
+                
+                if dataCount > 0 {
+                    series.append((
+                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
+                        values: Array(simulator.simulationData.mriDetrendedSignal.prefix(dataCount)),
+                        color: .green,
+                        showPoints: false
+                    ))
+                }
+            }
+            
+            if simulator.parameters.showModelOverlay {
+                // Ensure data arrays are the same length
+                let dataCount = min(simulator.simulationData.mriTimePoints.count, 
+                                   simulator.simulationData.mriModeledSignal.count)
+                
+                if dataCount > 0 {
+                    series.append((
+                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
+                        values: Array(simulator.simulationData.mriModeledSignal.prefix(dataCount)),
+                        color: .orange,
+                        showPoints: false
+                    ))
+                }
+            }
         }
         
         return series.isEmpty ? nil : series
     }
     
     private func getMRIYRange() -> ClosedRange<Double>? {
+        // Always provide a default range as fallback
+        let baseline = simulator.parameters.mriBaselineSignal
+        let defaultRange = (baseline - 50)...(baseline + 50)
+        
+        // If not using dynamic range, return fixed range
         if !simulator.parameters.useDynamicMRIRange {
-            // Fixed range based on baseline
-            let baseline = simulator.parameters.mriBaselineSignal
-            return (baseline - 50)...(baseline + 50)
+            return defaultRange
+        }
+        
+        // Safety check - ensure we have data
+        if simulator.simulationData.mriRawSignal.isEmpty {
+            return defaultRange
         }
         
         // Find min and max across all displayed signals
@@ -158,22 +198,27 @@ struct ContentView: View {
             allValues.append(contentsOf: simulator.simulationData.mriRawSignal)
         }
         
-        if simulator.parameters.showMRIDetrended {
+        if simulator.parameters.showMRIDetrended && !simulator.simulationData.mriDetrendedSignal.isEmpty {
             allValues.append(contentsOf: simulator.simulationData.mriDetrendedSignal)
         }
         
-        if simulator.parameters.showModelOverlay {
+        if simulator.parameters.showModelOverlay && !simulator.simulationData.mriModeledSignal.isEmpty {
             allValues.append(contentsOf: simulator.simulationData.mriModeledSignal)
         }
         
         if allValues.isEmpty {
-            return nil
+            return defaultRange
         }
         
-        let min = allValues.min() ?? 0
-        let max = allValues.max() ?? 0
-        let buffer = (max - min) * 0.1 // 10% buffer
+        let min = allValues.min() ?? (baseline - 50)
+        let max = allValues.max() ?? (baseline + 50)
         
+        // Ensure range is not zero or too small
+        if max - min < 1.0 {
+            return defaultRange
+        }
+        
+        let buffer = (max - min) * 0.1 // 10% buffer
         return (min - buffer)...(max + buffer)
     }
 }
