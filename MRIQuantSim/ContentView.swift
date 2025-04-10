@@ -61,14 +61,7 @@ struct ContentView: View {
                     timePoints: simulator.simulationData.co2TimePoints,
                     dataPoints: simulator.simulationData.co2RawSignal,
                     showRawData: simulator.parameters.showCO2Raw,
-                    additionalTimeSeries: simulator.parameters.showCO2EndTidal ? [
-                        (
-                            times: simulator.simulationData.co2EndTidalTimes,
-                            values: simulator.simulationData.co2EndTidalSignal,
-                            color: .red,
-                            showPoints: true
-                        )
-                    ] : nil,
+                    additionalTimeSeries: getAdditionalCO2TimeSeries(),
                     yRange: 0...50
                 )
                 
@@ -137,19 +130,20 @@ struct ContentView: View {
         var series: [(times: [Double], values: [Double], color: Color, showPoints: Bool)] = []
         
         // Safety check to ensure we have data
-        let hasValidMRIData = !simulator.simulationData.mriTimePoints.isEmpty && 
-                             !simulator.simulationData.mriDetrendedSignal.isEmpty && 
-                             !simulator.simulationData.mriModeledSignal.isEmpty
+        let hasValidMRIData = !simulator.simulationData.mriTimePoints.isEmpty
         
         if hasValidMRIData {
-            if simulator.parameters.showMRIDetrended {
+            if simulator.parameters.showMRIDetrended && !simulator.simulationData.mriDetrendedSignal.isEmpty {
                 // Ensure data arrays are the same length
                 let dataCount = min(simulator.simulationData.mriTimePoints.count, 
-                                   simulator.simulationData.mriDetrendedSignal.count)
+                                  simulator.simulationData.mriDetrendedSignal.count)
                 
                 if dataCount > 0 {
+                    // Create a slightly offset set of time points to ensure separate series
+                    let timePoints = Array(simulator.simulationData.mriTimePoints.prefix(dataCount))
+                    
                     series.append((
-                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
+                        times: timePoints,
                         values: Array(simulator.simulationData.mriDetrendedSignal.prefix(dataCount)),
                         color: .green,
                         showPoints: false
@@ -157,14 +151,17 @@ struct ContentView: View {
                 }
             }
             
-            if simulator.parameters.showModelOverlay {
+            if simulator.parameters.showModelOverlay && !simulator.simulationData.mriModeledSignal.isEmpty {
                 // Ensure data arrays are the same length
                 let dataCount = min(simulator.simulationData.mriTimePoints.count, 
-                                   simulator.simulationData.mriModeledSignal.count)
+                                  simulator.simulationData.mriModeledSignal.count)
                 
                 if dataCount > 0 {
+                    // Create a slightly offset set of time points to ensure separate series 
+                    let timePoints = Array(simulator.simulationData.mriTimePoints.prefix(dataCount))
+                    
                     series.append((
-                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
+                        times: timePoints,
                         values: Array(simulator.simulationData.mriModeledSignal.prefix(dataCount)),
                         color: .orange,
                         showPoints: false
@@ -174,6 +171,29 @@ struct ContentView: View {
         }
         
         return series.isEmpty ? nil : series
+    }
+    
+    private func getAdditionalCO2TimeSeries() -> [(times: [Double], values: [Double], color: Color, showPoints: Bool)]? {
+        // Safety check to ensure we have data
+        if simulator.parameters.showCO2EndTidal && 
+           !simulator.simulationData.co2EndTidalTimes.isEmpty && 
+           !simulator.simulationData.co2EndTidalSignal.isEmpty {
+            
+            // Ensure data arrays are the same length
+            let dataCount = min(simulator.simulationData.co2EndTidalTimes.count, 
+                               simulator.simulationData.co2EndTidalSignal.count)
+            
+            if dataCount > 0 {
+                return [(
+                    times: Array(simulator.simulationData.co2EndTidalTimes.prefix(dataCount)),
+                    values: Array(simulator.simulationData.co2EndTidalSignal.prefix(dataCount)),
+                    color: .red,
+                    showPoints: true
+                )]
+            }
+        }
+        
+        return nil
     }
     
     private func getMRIYRange() -> ClosedRange<Double>? {

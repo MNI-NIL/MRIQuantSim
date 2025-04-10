@@ -8,22 +8,7 @@
 import SwiftUI
 import Charts
 
-// Define a struct to hold each data point
-struct DataPoint: Identifiable {
-    let id = UUID()
-    let x: Double
-    let y: Double
-}
-
-// Define a struct for each data series
-struct DataSeries: Identifiable {
-    let id = UUID()
-    let points: [DataPoint]
-    let color: Color
-    let showPoints: Bool
-    let seriesName: String
-}
-
+// Basic chart implementation to address Swift type-checking
 struct SignalGraphView: View {
     let title: String
     let xLabel: String
@@ -34,44 +19,13 @@ struct SignalGraphView: View {
     let additionalTimeSeries: [(times: [Double], values: [Double], color: Color, showPoints: Bool)]?
     let yRange: ClosedRange<Double>?
     
-    // Process data into series
-    private var allSeries: [DataSeries] {
-        var result: [DataSeries] = []
-        
-        // Add main series if needed
-        if showRawData && !timePoints.isEmpty && !dataPoints.isEmpty {
-            let mainPoints = zip(timePoints, dataPoints)
-                .prefix(min(timePoints.count, dataPoints.count))
-                .map { DataPoint(x: $0.0, y: $0.1) }
-            
-            result.append(DataSeries(
-                points: mainPoints,
-                color: .blue,
-                showPoints: false,
-                seriesName: "Raw"
-            ))
-        }
-        
-        // Add additional series
-        if let additionalSeries = additionalTimeSeries {
-            for (idx, series) in additionalSeries.enumerated() {
-                if !series.times.isEmpty && !series.values.isEmpty {
-                    let count = min(series.times.count, series.values.count)
-                    let points = zip(series.times, series.values)
-                        .prefix(count)
-                        .map { DataPoint(x: $0.0, y: $0.1) }
-                    
-                    result.append(DataSeries(
-                        points: points,
-                        color: series.color,
-                        showPoints: series.showPoints,
-                        seriesName: "Series\(idx)"
-                    ))
-                }
-            }
-        }
-        
-        return result
+    // Simple data type for chart points to avoid connecting lines
+    struct ChartPoint: Identifiable {
+        let id = UUID()
+        let x: Double
+        let y: Double 
+        let seriesIndex: Int
+        let color: Color
     }
     
     var body: some View {
@@ -79,46 +33,122 @@ struct SignalGraphView: View {
             Text(title)
                 .font(.headline)
             
-            if let range = yRange {
-                chart
-                    .chartYScale(domain: range)
-                    .frame(height: 200)
-            } else {
-                chart
-                    .frame(height: 200)
-            }
+            // Create the chart
+            createFinalChart()
+                .frame(height: 200)
         }
         .padding()
     }
     
-    private var chart: some View {
+    // Create the final chart with all data
+    private func createFinalChart() -> some View {
+        // Construct data points to ensure separate, disconnected lines
+        let allPoints = getAllDataPoints()
+        let effectiveYRange = yRange ?? calculateYRange()
+        
+        // Create the basic chart
+        return constructBasicChart(allPoints: allPoints)
+            .chartYScale(domain: effectiveYRange)
+            .chartXAxisLabel(xLabel)
+            .chartYAxisLabel(yLabel)
+    }
+    
+    // Create a basic chart with points
+    private func constructBasicChart(allPoints: [ChartPoint]) -> some View {
         Chart {
-            ForEach(allSeries) { series in
-                // For each series, create a separate ForEach with different ID
-                if series.showPoints {
-                    // Point series - just show points
-                    ForEach(series.points) { point in
-                        PointMark(
-                            x: .value("\(xLabel) (\(series.seriesName))", point.x),
-                            y: .value(yLabel, point.y)
-                        )
-                        .foregroundStyle(series.color)
-                    }
-                } else {
-                    // Line series - create individual points
-                    ForEach(series.points) { point in
-                        LineMark(
-                            x: .value("\(xLabel) (\(series.seriesName))", point.x),
-                            y: .value(yLabel, point.y)
-                        )
-                        .foregroundStyle(series.color)
-                        .lineStyle(StrokeStyle(lineWidth: series.seriesName == "Raw" ? 2 : 1))
+            // Draw individual data points - simpler for type checking
+            ForEach(allPoints) { point in
+                if point.seriesIndex == -1 {
+                    // Main data series (raw data)
+                    LineMark(
+                        x: .value("XMain", point.x),
+                        y: .value("YMain", point.y)
+                    )
+                    .foregroundStyle(.blue)
+                }
+                else if point.seriesIndex >= 0 {
+                    // Additional series with custom color
+                    LineMark(
+                        x: .value("X\(point.seriesIndex)", point.x),
+                        y: .value("Y\(point.seriesIndex)", point.y)
+                    )
+                    .foregroundStyle(point.color)
+                }
+            }
+        }
+    }
+    
+    // Get all data points
+    private func getAllDataPoints() -> [ChartPoint] {
+        var points: [ChartPoint] = []
+        
+        // Add raw data points with series index -1
+        if showRawData && !timePoints.isEmpty && !dataPoints.isEmpty {
+            let count = min(timePoints.count, dataPoints.count)
+            for i in 0..<count {
+                points.append(ChartPoint(
+                    x: timePoints[i],
+                    y: dataPoints[i],
+                    seriesIndex: -1,
+                    color: .blue
+                ))
+            }
+        }
+        
+        // Add additional series points with series index ≥ 0
+        if let additionalSeries = additionalTimeSeries {
+            for (idx, series) in additionalSeries.enumerated() {
+                if !series.times.isEmpty && !series.values.isEmpty {
+                    let count = min(series.times.count, series.values.count)
+                    for i in 0..<count {
+                        points.append(ChartPoint(
+                            x: series.times[i],
+                            y: series.values[i],
+                            seriesIndex: idx,
+                            color: series.color
+                        ))
                     }
                 }
             }
         }
-        .chartXAxisLabel(xLabel)
-        .chartYAxisLabel(yLabel)
+        
+        return points
+    }
+    
+    // Calculate a sensible y-range if none provided
+    private func calculateYRange() -> ClosedRange<Double> {
+        var allValues: [Double] = []
+        
+        // Add main series values if shown
+        if showRawData && !dataPoints.isEmpty {
+            allValues.append(contentsOf: dataPoints)
+        }
+        
+        // Add additional series values
+        if let additionalSeries = additionalTimeSeries {
+            for series in additionalSeries {
+                if !series.values.isEmpty {
+                    allValues.append(contentsOf: series.values)
+                }
+            }
+        }
+        
+        // Fallback if no values
+        if allValues.isEmpty {
+            return 0...100
+        }
+        
+        let min = allValues.min() ?? 0.0
+        let max = allValues.max() ?? 100.0
+        
+        // If min equals max, add a buffer
+        if min == max {
+            return (min - 10)...(max + 10)
+        }
+        
+        // Add buffer around the range
+        let buffer = (max - min) * 0.1
+        return (min - buffer)...(max + buffer)
     }
 }
 
