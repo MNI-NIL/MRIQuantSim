@@ -64,12 +64,32 @@ struct SignalGraphView: View {
                     points.append(DataPoint(x: series.times[i], y: series.values[i]))
                 }
                 
-                result.append(DataSeries(
-                    name: "series_\(idx)",
-                    color: series.color,
-                    showPoints: series.showPoints,
-                    points: points
-                ))
+                // For point series (like end-tidal CO2), we'll create both a line and points
+                if series.showPoints {
+                    // First add a line in a contrasting color (dark red or maroon)
+                    result.append(DataSeries(
+                        name: "series_\(idx)_line",
+                        color: Color(red: 0.6, green: 0.0, blue: 0.0), // Dark red/maroon for the line
+                        showPoints: false, // This is the line part
+                        points: points
+                    ))
+                    
+                    // Then add the points in the original color (typically bright red)
+                    result.append(DataSeries(
+                        name: "series_\(idx)_points",
+                        color: series.color,
+                        showPoints: true, // This is the points part
+                        points: points
+                    ))
+                } else {
+                    // Normal line series
+                    result.append(DataSeries(
+                        name: "series_\(idx)",
+                        color: series.color,
+                        showPoints: series.showPoints,
+                        points: points
+                    ))
+                }
             }
         }
         
@@ -96,28 +116,30 @@ struct SignalGraphView: View {
     
     private var chartView: some View {
         Chart {
-            ForEach(chartData) { series in
-                if series.showPoints {
-                    // Scatter plot (points only)
-                    ForEach(series.points) { point in
-                        PointMark(
-                            x: .value("x_\(series.name)", point.x),
-                            y: .value("y_\(series.name)", point.y)
-                        )
-                        .foregroundStyle(series.color)
-                        .symbolSize(30)
-                    }
-                } else {
-                    // Line plot with series-specific identifiers
-                    ForEach(series.points) { point in
-                        LineMark(
-                            x: .value("x_\(series.name)", point.x),
-                            y: .value("y_\(series.name)", point.y)
-                        )
-                        .foregroundStyle(series.color)
-                        .lineStyle(StrokeStyle(lineWidth: 2))
-                    }
-                    .foregroundStyle(by: .value("Series", series.name))
+            // First draw all lines (to make sure they're behind the points)
+            ForEach(chartData.filter { !$0.showPoints }) { series in
+                // Line plot with series-specific identifiers
+                ForEach(series.points) { point in
+                    LineMark(
+                        x: .value("x_\(series.name)", point.x),
+                        y: .value("y_\(series.name)", point.y)
+                    )
+                    .foregroundStyle(series.color)
+                    .lineStyle(StrokeStyle(lineWidth: 2))
+                }
+                .foregroundStyle(by: .value("Series", series.name))
+            }
+            
+            // Then draw all points (to ensure they appear on top)
+            ForEach(chartData.filter { $0.showPoints }) { series in
+                // Scatter plot (points only)
+                ForEach(series.points) { point in
+                    PointMark(
+                        x: .value("x_\(series.name)", point.x),
+                        y: .value("y_\(series.name)", point.y)
+                    )
+                    .foregroundStyle(series.color)
+                    .symbolSize(30)
                 }
             }
         }
