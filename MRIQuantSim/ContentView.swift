@@ -64,10 +64,7 @@ struct ContentView: View {
                     title: "CO2 Partial Pressure",
                     xLabel: "Time (s)",
                     yLabel: "pCO2 (mmHg)",
-                    timePoints: simulator.simulationData.co2TimePoints,
-                    dataPoints: simulator.simulationData.co2RawSignal,
-                    showRawData: simulator.parameters.showCO2Raw,
-                    additionalTimeSeries: getAdditionalCO2TimeSeries(),
+                    dataSeries: getCO2Series(),
                     yRange: 0...50
                 )
                 
@@ -76,10 +73,7 @@ struct ContentView: View {
                     title: "MRI Signal",
                     xLabel: "Time (s)",
                     yLabel: "Signal (a.u.)",
-                    timePoints: simulator.simulationData.mriTimePoints,
-                    dataPoints: simulator.simulationData.mriRawSignal,
-                    showRawData: simulator.parameters.showMRIRaw,
-                    additionalTimeSeries: getAdditionalMRITimeSeries(),
+                    dataSeries: getMRISeries(),
                     yRange: getMRIYRange()
                 )
             }
@@ -133,70 +127,14 @@ struct ContentView: View {
         }
     }
     
-    private func getAdditionalMRITimeSeries() -> [(times: [Double], values: [Double], color: Color, showPoints: Bool)]? {
-        var series: [(times: [Double], values: [Double], color: Color, showPoints: Bool)] = []
-        
-        // Safety check to ensure we have data
-        let hasValidMRIData = !simulator.simulationData.mriTimePoints.isEmpty
-        
-        if hasValidMRIData {
-            if simulator.parameters.showMRIDetrended && !simulator.simulationData.mriDetrendedSignal.isEmpty {
-                // Ensure data arrays are the same length
-                let dataCount = min(simulator.simulationData.mriTimePoints.count, 
-                                  simulator.simulationData.mriDetrendedSignal.count)
-                
-                if dataCount > 0 {
-                    // Use the same time points but with UUID to ensure full separation between series
-                    series.append((
-                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
-                        values: Array(simulator.simulationData.mriDetrendedSignal.prefix(dataCount)),
-                        color: .green,
-                        showPoints: false
-                    ))
-                }
-            }
-            
-            if simulator.parameters.showModelOverlay && !simulator.simulationData.mriModeledSignal.isEmpty {
-                // Ensure data arrays are the same length
-                let dataCount = min(simulator.simulationData.mriTimePoints.count, 
-                                  simulator.simulationData.mriModeledSignal.count)
-                
-                if dataCount > 0 {
-                    // Use the same time points but with UUID to ensure full separation between series
-                    series.append((
-                        times: Array(simulator.simulationData.mriTimePoints.prefix(dataCount)),
-                        values: Array(simulator.simulationData.mriModeledSignal.prefix(dataCount)),
-                        color: .orange,
-                        showPoints: false
-                    ))
-                }
-            }
-        }
-        
-        return series.isEmpty ? nil : series
+    private func getMRISeries() -> [TimeSeriesData] {
+        // Get all MRI series with visibility determined by parameters
+        return simulator.simulationData.getMRISeriesData(parameters: simulator.parameters)
     }
     
-    private func getAdditionalCO2TimeSeries() -> [(times: [Double], values: [Double], color: Color, showPoints: Bool)]? {
-        // Safety check to ensure we have data
-        if simulator.parameters.showCO2EndTidal && 
-           !simulator.simulationData.co2EndTidalTimes.isEmpty && 
-           !simulator.simulationData.co2EndTidalSignal.isEmpty {
-            
-            // Ensure data arrays are the same length
-            let dataCount = min(simulator.simulationData.co2EndTidalTimes.count, 
-                               simulator.simulationData.co2EndTidalSignal.count)
-            
-            if dataCount > 0 {
-                return [(
-                    times: Array(simulator.simulationData.co2EndTidalTimes.prefix(dataCount)),
-                    values: Array(simulator.simulationData.co2EndTidalSignal.prefix(dataCount)),
-                    color: .red,
-                    showPoints: true
-                )]
-            }
-        }
-        
-        return nil
+    private func getCO2Series() -> [TimeSeriesData] {
+        // Get all CO2 series with visibility determined by parameters
+        return simulator.simulationData.getCO2SeriesData(parameters: simulator.parameters)
     }
     
     private func getMRIYRange() -> ClosedRange<Double>? {
@@ -209,24 +147,19 @@ struct ContentView: View {
             return defaultRange
         }
         
+        // Get all series that will be displayed
+        let series = getMRISeries().filter { $0.isVisible }
+        
         // Safety check - ensure we have data
-        if simulator.simulationData.mriRawSignal.isEmpty {
+        if series.isEmpty {
             return defaultRange
         }
         
         // Find min and max across all displayed signals
         var allValues: [Double] = []
         
-        if simulator.parameters.showMRIRaw {
-            allValues.append(contentsOf: simulator.simulationData.mriRawSignal)
-        }
-        
-        if simulator.parameters.showMRIDetrended && !simulator.simulationData.mriDetrendedSignal.isEmpty {
-            allValues.append(contentsOf: simulator.simulationData.mriDetrendedSignal)
-        }
-        
-        if simulator.parameters.showModelOverlay && !simulator.simulationData.mriModeledSignal.isEmpty {
-            allValues.append(contentsOf: simulator.simulationData.mriModeledSignal)
+        for dataSeries in series {
+            allValues.append(contentsOf: dataSeries.yValues)
         }
         
         if allValues.isEmpty {

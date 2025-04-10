@@ -8,15 +8,7 @@
 import SwiftUI
 import Charts
 
-// Data types for chart series
-struct DataSeries: Identifiable {
-    let id = UUID()
-    let name: String
-    let color: Color
-    let showPoints: Bool
-    let points: [DataPoint]
-}
-
+// Internal data type for points
 struct DataPoint: Identifiable {
     let id = UUID()
     let x: Double
@@ -27,73 +19,24 @@ struct SignalGraphView: View {
     let title: String
     let xLabel: String
     let yLabel: String
-    let timePoints: [Double]
-    let dataPoints: [Double]
-    let showRawData: Bool
-    let additionalTimeSeries: [(times: [Double], values: [Double], color: Color, showPoints: Bool)]?
+    let dataSeries: [TimeSeriesData]
     let yRange: ClosedRange<Double>?
     
-    // Prepare data in the format expected by the chart
-    private var chartData: [DataSeries] {
-        var result: [DataSeries] = []
+    // Simple computed property to get only visible data series
+    private var visibleSeries: [TimeSeriesData] {
+        return dataSeries.filter { $0.isVisible }
+    }
+    
+    // Convert a TimeSeriesData to an array of DataPoints
+    private func pointsFor(series: TimeSeriesData) -> [DataPoint] {
+        let count = min(series.xValues.count, series.yValues.count)
+        var points: [DataPoint] = []
         
-        // Main data series
-        if showRawData && !timePoints.isEmpty && !dataPoints.isEmpty {
-            let count = min(timePoints.count, dataPoints.count)
-            var points: [DataPoint] = []
-            
-            for i in 0..<count {
-                points.append(DataPoint(x: timePoints[i], y: dataPoints[i]))
-            }
-            
-            result.append(DataSeries(
-                name: "raw",
-                color: .blue,
-                showPoints: false,
-                points: points
-            ))
+        for i in 0..<count {
+            points.append(DataPoint(x: series.xValues[i], y: series.yValues[i]))
         }
         
-        // Additional series
-        if let additionalSeries = additionalTimeSeries {
-            for (idx, series) in additionalSeries.enumerated() {
-                let count = min(series.times.count, series.values.count)
-                var points: [DataPoint] = []
-                
-                for i in 0..<count {
-                    points.append(DataPoint(x: series.times[i], y: series.values[i]))
-                }
-                
-                // For point series (like end-tidal CO2), we'll create both a line and points
-                if series.showPoints {
-                    // First add a line in a contrasting color (dark red or maroon)
-                    result.append(DataSeries(
-                        name: "series_\(idx)_line",
-                        color: Color(red: 0.6, green: 0.0, blue: 0.0), // Dark red/maroon for the line
-                        showPoints: false, // This is the line part
-                        points: points
-                    ))
-                    
-                    // Then add the points in the original color (typically bright red)
-                    result.append(DataSeries(
-                        name: "series_\(idx)_points",
-                        color: series.color,
-                        showPoints: true, // This is the points part
-                        points: points
-                    ))
-                } else {
-                    // Normal line series
-                    result.append(DataSeries(
-                        name: "series_\(idx)",
-                        color: series.color,
-                        showPoints: series.showPoints,
-                        points: points
-                    ))
-                }
-            }
-        }
-        
-        return result
+        return points
     }
     
     var body: some View {
@@ -116,30 +59,45 @@ struct SignalGraphView: View {
     
     private var chartView: some View {
         Chart {
-            // First draw all lines (to make sure they're behind the points)
-            ForEach(chartData.filter { !$0.showPoints }) { series in
-                // Line plot with series-specific identifiers
-                ForEach(series.points) { point in
-                    LineMark(
-                        x: .value("x_\(series.name)", point.x),
-                        y: .value("y_\(series.name)", point.y)
-                    )
-                    .foregroundStyle(series.color)
-                    .lineStyle(StrokeStyle(lineWidth: 2))
+            // Process each visible series
+            ForEach(0..<visibleSeries.count, id: \.self) { index in
+                let series = visibleSeries[index]
+                let points = pointsFor(series: series)
+                
+                // Draw connecting line if this should be shown as a line
+                //if !series.showPoints || series.showConnectingLine {
+                if series.showConnectingLine {
+                    // Determine correct line color
+                    let lineColor = series.showConnectingLine ? 
+                        (series.connectingLineColor ?? series.color.opacity(0.6)) : 
+                        series.color
+                        
+                    // Draw line for this series
+                    ForEach(0..<points.count, id: \.self) { i in
+                        let point = points[i]
+                        LineMark(
+                            x: .value("Time", point.x),
+                            y: .value("Value", point.y)
+                        )
+                    }
+                    .foregroundStyle(lineColor)
+                    .lineStyle(StrokeStyle(lineWidth: series.lineWidth))
+                    .foregroundStyle(by: .value("Series", series.title))
                 }
-                .foregroundStyle(by: .value("Series", series.name))
-            }
-            
-            // Then draw all points (to ensure they appear on top)
-            ForEach(chartData.filter { $0.showPoints }) { series in
-                // Scatter plot (points only)
-                ForEach(series.points) { point in
-                    PointMark(
-                        x: .value("x_\(series.name)", point.x),
-                        y: .value("y_\(series.name)", point.y)
-                    )
+                
+                // Draw points if this series should have points
+                if series.showPoints {
+                    // Draw points for this series
+                    ForEach(0..<points.count, id: \.self) { i in
+                        let point = points[i]
+                        PointMark(
+                            x: .value("Time", point.x),
+                            y: .value("Value", point.y)
+                        )
+                    }
                     .foregroundStyle(series.color)
-                    .symbolSize(30)
+                    .symbolSize(series.symbolSize)
+                    .foregroundStyle(by: .value("Series", series.title))
                 }
             }
         }
@@ -151,17 +109,10 @@ struct SignalGraphView: View {
     private func calculateYRange() -> ClosedRange<Double> {
         var allValues: [Double] = []
         
-        // Add main series values if shown
-        if showRawData, !dataPoints.isEmpty {
-            allValues.append(contentsOf: dataPoints)
-        }
-        
-        // Add additional series values
-        if let additionalSeries = additionalTimeSeries {
-            for series in additionalSeries {
-                if !series.values.isEmpty {
-                    allValues.append(contentsOf: series.values)
-                }
+        // Collect all y values from visible series only
+        for series in visibleSeries {
+            if !series.yValues.isEmpty {
+                allValues.append(contentsOf: series.yValues)
             }
         }
         
@@ -190,16 +141,39 @@ struct SignalGraphView_Previews: PreviewProvider {
         let timePoints = stride(from: 0.0, to: 10.0, by: 0.1).map { $0 }
         let sampleData = timePoints.map { sin($0) }
         
+        let sampleSeries = [
+            TimeSeriesData(
+                title: "Sine Wave",
+                xValues: timePoints,
+                yValues: sampleData,
+                color: .blue,
+                isVisible: true
+            ),
+            TimeSeriesData(
+                title: "Key Points",
+                xValues: [0, 2, 4, 6, 8],
+                yValues: [0, 0.9, 0, -0.9, 0],
+                color: .red,
+                showPoints: true,
+                isVisible: true,
+                symbolSize: 50,
+                showConnectingLine: true,
+                connectingLineColor: .red.opacity(0.5)
+            ),
+            TimeSeriesData(
+                title: "Hidden Series",
+                xValues: timePoints,
+                yValues: timePoints.map { cos($0) },
+                color: .green,
+                isVisible: false
+            )
+        ]
+        
         return SignalGraphView(
             title: "Sample Signal",
             xLabel: "Time (s)",
             yLabel: "Amplitude",
-            timePoints: timePoints,
-            dataPoints: sampleData,
-            showRawData: true,
-            additionalTimeSeries: [
-                (times: [0, 2, 4, 6, 8], values: [0, 0.9, 0, -0.9, 0], color: .red, showPoints: true)
-            ],
+            dataSeries: sampleSeries,
             yRange: -1.1...1.1
         )
     }

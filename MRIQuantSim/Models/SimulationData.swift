@@ -8,6 +8,45 @@
 import Foundation
 import SwiftUI
 
+// Model structure for time series data
+struct TimeSeriesData: Identifiable {
+    let id = UUID()
+    let title: String
+    let xValues: [Double]
+    let yValues: [Double]
+    let color: Color
+    let showPoints: Bool
+    let isVisible: Bool
+    let lineWidth: Double
+    let symbolSize: Double
+    var showConnectingLine: Bool
+    let connectingLineColor: Color?
+    
+    init(
+        title: String,
+        xValues: [Double],
+        yValues: [Double],
+        color: Color,
+        showPoints: Bool = false,
+        isVisible: Bool = true,
+        lineWidth: Double = 2.0,
+        symbolSize: Double = 30.0,
+        showConnectingLine: Bool = true,
+        connectingLineColor: Color? = nil
+    ) {
+        self.title = title
+        self.xValues = xValues
+        self.yValues = yValues
+        self.color = color
+        self.showPoints = showPoints
+        self.isVisible = isVisible
+        self.lineWidth = lineWidth
+        self.symbolSize = symbolSize
+        self.showConnectingLine = showConnectingLine
+        self.connectingLineColor = connectingLineColor
+    }
+}
+
 class SimulationData: ObservableObject {
     @Published var co2RawSignal: [Double] = []
     @Published var co2EndTidalSignal: [Double] = []
@@ -24,6 +63,87 @@ class SimulationData: ObservableObject {
     
     // Store noise values separately so they can be reused
     private var mriNoiseValues: [Double] = []
+    
+    // Helper methods to create TimeSeriesData objects
+    func getCO2SeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
+        var seriesData: [TimeSeriesData] = []
+        
+        // Raw CO2 signal
+        if !co2TimePoints.isEmpty && !co2RawSignal.isEmpty {
+            let count = min(co2TimePoints.count, co2RawSignal.count)
+            seriesData.append(TimeSeriesData(
+                title: "Raw CO2",
+                xValues: Array(co2TimePoints.prefix(count)),
+                yValues: Array(co2RawSignal.prefix(count)),
+                color: .blue,
+                isVisible: parameters.showCO2Raw,
+            ))
+        }
+        
+        // End-tidal CO2 data
+        if !co2EndTidalTimes.isEmpty && !co2EndTidalSignal.isEmpty {
+            let count = min(co2EndTidalTimes.count, co2EndTidalSignal.count)
+            let xValues = Array(co2EndTidalTimes.prefix(count))
+            let yValues = Array(co2EndTidalSignal.prefix(count))
+            
+            // Single time series with both points and connecting line
+            seriesData.append(TimeSeriesData(
+                title: "End-tidal CO2",
+                xValues: xValues,
+                yValues: yValues,
+                color: .red,
+                showPoints: true,
+                isVisible: parameters.showCO2EndTidal,
+                symbolSize: 30,
+                showConnectingLine: true,
+                connectingLineColor: Color(red: 0.6, green: 0.0, blue: 0.0)
+            ))
+        }
+        
+        return seriesData
+    }
+    
+    func getMRISeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
+        var seriesData: [TimeSeriesData] = []
+        
+        // Raw MRI signal
+        if !mriTimePoints.isEmpty && !mriRawSignal.isEmpty {
+            let count = min(mriTimePoints.count, mriRawSignal.count)
+            seriesData.append(TimeSeriesData(
+                title: "Raw MRI Signal",
+                xValues: Array(mriTimePoints.prefix(count)),
+                yValues: Array(mriRawSignal.prefix(count)),
+                color: .blue,
+                isVisible: parameters.showMRIRaw
+            ))
+        }
+        
+        // Detrended MRI signal
+        if !mriTimePoints.isEmpty && !mriDetrendedSignal.isEmpty {
+            let count = min(mriTimePoints.count, mriDetrendedSignal.count)
+            seriesData.append(TimeSeriesData(
+                title: "Detrended MRI Signal",
+                xValues: Array(mriTimePoints.prefix(count)),
+                yValues: Array(mriDetrendedSignal.prefix(count)),
+                color: .green,
+                isVisible: parameters.showMRIDetrended
+            ))
+        }
+        
+        // Model-fitted MRI signal
+        if !mriTimePoints.isEmpty && !mriModeledSignal.isEmpty {
+            let count = min(mriTimePoints.count, mriModeledSignal.count)
+            seriesData.append(TimeSeriesData(
+                title: "Model Fit",
+                xValues: Array(mriTimePoints.prefix(count)),
+                yValues: Array(mriModeledSignal.prefix(count)),
+                color: .orange,
+                isVisible: parameters.showModelOverlay
+            ))
+        }
+        
+        return seriesData
+    }
     
     // Constants for the simulation
     let totalDuration: Double = 300.0 // 5 minutes in seconds
