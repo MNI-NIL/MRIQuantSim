@@ -19,37 +19,45 @@ struct ContentView: View {
     @State private var selectedTab = 0
     
     var body: some View {
-        VStack {
-            // CO2 Graph
-            SignalGraphView(
-                title: "CO2 Partial Pressure",
-                xLabel: "Time (s)",
-                yLabel: "pCO2 (mmHg)",
-                timePoints: simulationData.co2TimePoints,
-                dataPoints: simulationData.co2RawSignal,
-                showRawData: parameters.showCO2Raw,
-                additionalTimeSeries: parameters.showCO2EndTidal ? [
-                    (
-                        times: simulationData.co2EndTidalTimes,
-                        values: simulationData.co2EndTidalSignal,
-                        color: .red,
-                        showPoints: true
-                    )
-                ] : nil,
-                yRange: 0...50
-            )
+        VStack(spacing: 0) {
+            // Graphs container
+            VStack(spacing: 8) {
+                // CO2 Graph
+                SignalGraphView(
+                    title: "CO2 Partial Pressure",
+                    xLabel: "Time (s)",
+                    yLabel: "pCO2 (mmHg)",
+                    timePoints: simulationData.co2TimePoints,
+                    dataPoints: simulationData.co2RawSignal,
+                    showRawData: parameters.showCO2Raw,
+                    additionalTimeSeries: parameters.showCO2EndTidal ? [
+                        (
+                            times: simulationData.co2EndTidalTimes,
+                            values: simulationData.co2EndTidalSignal,
+                            color: .red,
+                            showPoints: true
+                        )
+                    ] : nil,
+                    yRange: 0...50
+                )
+                
+                // MRI Graph
+                SignalGraphView(
+                    title: "MRI Signal",
+                    xLabel: "Time (s)",
+                    yLabel: "Signal (a.u.)",
+                    timePoints: simulationData.mriTimePoints,
+                    dataPoints: simulationData.mriRawSignal,
+                    showRawData: parameters.showMRIRaw,
+                    additionalTimeSeries: getAdditionalMRITimeSeries(),
+                    yRange: getMRIYRange()
+                )
+            }
+            .padding(.horizontal)
+            .frame(maxHeight: 450)
             
-            // MRI Graph
-            SignalGraphView(
-                title: "MRI Signal",
-                xLabel: "Time (s)",
-                yLabel: "Signal (a.u.)",
-                timePoints: simulationData.mriTimePoints,
-                dataPoints: simulationData.mriRawSignal,
-                showRawData: parameters.showMRIRaw,
-                additionalTimeSeries: getAdditionalMRITimeSeries(),
-                yRange: getMRIYRange()
-            )
+            Divider()
+                .padding(.vertical, 4)
             
             // Tabs for Parameters and Analysis
             TabView(selection: $selectedTab) {
@@ -65,6 +73,7 @@ struct ContentView: View {
                     }
                     .tag(1)
             }
+            .frame(minHeight: 300)
         }
         .padding()
         .onChange(of: needsUpdate) { _ in

@@ -113,21 +113,23 @@ struct SignalGraphView: View {
     }
 }
 
-#Preview {
-    // Sample data for preview
-    let timePoints = stride(from: 0.0, to: 10.0, by: 0.1).map { $0 }
-    let dataPoints = timePoints.map { sin($0) }
-    
-    return SignalGraphView(
-        title: "Sample Signal",
-        xLabel: "Time (s)",
-        yLabel: "Amplitude",
-        timePoints: timePoints,
-        dataPoints: dataPoints,
-        showRawData: true,
-        additionalTimeSeries: [
-            (times: [0, 2, 4, 6, 8], values: [0, 0.9, 0, -0.9, 0], color: .red, showPoints: true)
-        ],
-        yRange: -1.1...1.1
-    )
+struct SignalGraphView_Previews: PreviewProvider {
+    static var previews: some View {
+        // Sample data for preview
+        let timePoints = stride(from: 0.0, to: 10.0, by: 0.1).map { $0 }
+        let dataPoints = timePoints.map { sin($0) }
+        
+        return SignalGraphView(
+            title: "Sample Signal",
+            xLabel: "Time (s)",
+            yLabel: "Amplitude",
+            timePoints: timePoints,
+            dataPoints: dataPoints,
+            showRawData: true,
+            additionalTimeSeries: [
+                (times: [0, 2, 4, 6, 8], values: [0, 0.9, 0, -0.9, 0], color: .red, showPoints: true)
+            ],
+            yRange: -1.1...1.1
+        )
+    }
 }

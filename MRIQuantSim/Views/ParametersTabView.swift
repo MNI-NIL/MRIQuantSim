@@ -12,166 +12,133 @@ struct ParametersTabView: View {
     @Binding var needsUpdate: Bool
     
     var body: some View {
-        Form {
-            Section(header: Text("Signal Parameters")) {
-                HStack {
-                    Text("CO2 Sampling Rate (Hz)")
-                    Spacer()
-                    TextField("", value: $parameters.co2SamplingRate, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.co2SamplingRate) { _ in needsUpdate = true }
+        ScrollView {
+            VStack(spacing: 16) {
+                parameterSection(title: "Signal Parameters") {
+                    parameterRow(title: "CO2 Sampling Rate (Hz)", value: $parameters.co2SamplingRate)
+                    parameterRow(title: "Breathing Rate (breaths/min)", value: $parameters.breathingRate)
+                    parameterRow(title: "MRI Sampling Interval (s)", value: $parameters.mriSamplingInterval)
+                    parameterRow(title: "MRI Baseline Signal (a.u.)", value: $parameters.mriBaselineSignal)
+                    parameterRow(title: "MRI Response Amplitude (a.u.)", value: $parameters.mriResponseAmplitude)
                 }
                 
-                HStack {
-                    Text("Breathing Rate (breaths/min)")
-                    Spacer()
-                    TextField("", value: $parameters.breathingRate, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.breathingRate) { _ in needsUpdate = true }
+                parameterSection(title: "Noise Parameters") {
+                    Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
+                        .onChange(of: parameters.enableCO2Noise) { _ in needsUpdate = true }
+                    
+                    parameterRow(
+                        title: "CO2 Noise Frequency (Hz)", 
+                        value: $parameters.co2NoiseFrequency,
+                        disabled: !parameters.enableCO2Noise
+                    )
+                    
+                    parameterRow(
+                        title: "CO2 Noise Amplitude",
+                        value: $parameters.co2NoiseAmplitude,
+                        disabled: !parameters.enableCO2Noise
+                    )
+                    
+                    Toggle("Enable MRI Noise", isOn: $parameters.enableMRINoise)
+                        .onChange(of: parameters.enableMRINoise) { _ in needsUpdate = true }
+                    
+                    parameterRow(
+                        title: "MRI Noise Amplitude (a.u.)",
+                        value: $parameters.mriNoiseAmplitude,
+                        disabled: !parameters.enableMRINoise
+                    )
                 }
                 
-                HStack {
-                    Text("MRI Sampling Interval (s)")
-                    Spacer()
-                    TextField("", value: $parameters.mriSamplingInterval, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriSamplingInterval) { _ in needsUpdate = true }
-                }
-                
-                HStack {
-                    Text("MRI Baseline Signal (a.u.)")
-                    Spacer()
-                    TextField("", value: $parameters.mriBaselineSignal, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriBaselineSignal) { _ in needsUpdate = true }
-                }
-                
-                HStack {
-                    Text("MRI Response Amplitude (a.u.)")
-                    Spacer()
-                    TextField("", value: $parameters.mriResponseAmplitude, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriResponseAmplitude) { _ in needsUpdate = true }
+                parameterSection(title: "Drift Parameters") {
+                    Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
+                        .onChange(of: parameters.enableCO2Drift) { _ in needsUpdate = true }
+                    
+                    parameterRow(
+                        title: "CO2 Linear Drift (mmHg)",
+                        value: $parameters.co2LinearDrift,
+                        disabled: !parameters.enableCO2Drift
+                    )
+                    
+                    parameterRow(
+                        title: "CO2 Quadratic Drift (mmHg)",
+                        value: $parameters.co2QuadraticDrift,
+                        disabled: !parameters.enableCO2Drift
+                    )
+                    
+                    parameterRow(
+                        title: "CO2 Cubic Drift (mmHg)",
+                        value: $parameters.co2CubicDrift,
+                        disabled: !parameters.enableCO2Drift
+                    )
+                    
+                    Toggle("Enable MRI Drift", isOn: $parameters.enableMRIDrift)
+                        .onChange(of: parameters.enableMRIDrift) { _ in needsUpdate = true }
+                    
+                    parameterRow(
+                        title: "MRI Linear Drift (%)",
+                        value: $parameters.mriLinearDrift,
+                        disabled: !parameters.enableMRIDrift
+                    )
+                    
+                    parameterRow(
+                        title: "MRI Quadratic Drift (%)",
+                        value: $parameters.mriQuadraticDrift,
+                        disabled: !parameters.enableMRIDrift
+                    )
+                    
+                    parameterRow(
+                        title: "MRI Cubic Drift (%)",
+                        value: $parameters.mriCubicDrift,
+                        disabled: !parameters.enableMRIDrift
+                    )
                 }
             }
+            .padding()
+        }
+    }
+    
+    @ViewBuilder
+    private func parameterSection<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(title)
+                .font(.headline)
+                .padding(.bottom, 2)
             
-            Section(header: Text("Noise Parameters")) {
-                Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
-                    .onChange(of: parameters.enableCO2Noise) { _ in needsUpdate = true }
-                
-                HStack {
-                    Text("CO2 Noise Frequency (Hz)")
-                    Spacer()
-                    TextField("", value: $parameters.co2NoiseFrequency, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.co2NoiseFrequency) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableCO2Noise)
-                }
-                
-                HStack {
-                    Text("CO2 Noise Amplitude")
-                    Spacer()
-                    TextField("", value: $parameters.co2NoiseAmplitude, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.co2NoiseAmplitude) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableCO2Noise)
-                }
-                
-                Toggle("Enable MRI Noise", isOn: $parameters.enableMRINoise)
-                    .onChange(of: parameters.enableMRINoise) { _ in needsUpdate = true }
-                
-                HStack {
-                    Text("MRI Noise Amplitude (a.u.)")
-                    Spacer()
-                    TextField("", value: $parameters.mriNoiseAmplitude, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriNoiseAmplitude) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableMRINoise)
-                }
-            }
+            content()
+                .padding(.leading, 8)
+        }
+        .padding()
+        .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
+        .cornerRadius(10)
+    }
+    
+    private func parameterRow(title: String, value: Binding<Double>, disabled: Bool = false) -> some View {
+        HStack(spacing: 15) {
+            Text(title)
+                .frame(maxWidth: .infinity, alignment: .leading)
             
-            Section(header: Text("Drift Parameters")) {
-                Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
-                    .onChange(of: parameters.enableCO2Drift) { _ in needsUpdate = true }
-                
-                HStack {
-                    Text("CO2 Linear Drift (mmHg)")
-                    Spacer()
-                    TextField("", value: $parameters.co2LinearDrift, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.co2LinearDrift) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableCO2Drift)
-                }
-                
-                HStack {
-                    Text("CO2 Quadratic Drift (mmHg)")
-                    Spacer()
-                    TextField("", value: $parameters.co2QuadraticDrift, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.co2QuadraticDrift) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableCO2Drift)
-                }
-                
-                HStack {
-                    Text("CO2 Cubic Drift (mmHg)")
-                    Spacer()
-                    TextField("", value: $parameters.co2CubicDrift, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.co2CubicDrift) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableCO2Drift)
-                }
-                
-                Toggle("Enable MRI Drift", isOn: $parameters.enableMRIDrift)
-                    .onChange(of: parameters.enableMRIDrift) { _ in needsUpdate = true }
-                
-                HStack {
-                    Text("MRI Linear Drift (%)")
-                    Spacer()
-                    TextField("", value: $parameters.mriLinearDrift, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriLinearDrift) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableMRIDrift)
-                }
-                
-                HStack {
-                    Text("MRI Quadratic Drift (%)")
-                    Spacer()
-                    TextField("", value: $parameters.mriQuadraticDrift, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriQuadraticDrift) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableMRIDrift)
-                }
-                
-                HStack {
-                    Text("MRI Cubic Drift (%)")
-                    Spacer()
-                    TextField("", value: $parameters.mriCubicDrift, format: .number)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 80)
-                        .onChange(of: parameters.mriCubicDrift) { _ in needsUpdate = true }
-                        .disabled(!parameters.enableMRIDrift)
-                }
-            }
+            TextField("", value: value, format: .number)
+                .multilineTextAlignment(.trailing)
+                .frame(width: 80)
+                .padding(8)
+                .background(Color.white)
+                .cornerRadius(6)
+                .onChange(of: value.wrappedValue) { _ in needsUpdate = true }
+                .disabled(disabled)
         }
     }
 }
 
-#Preview {
-    @State var parameters = SimulationParameters()
-    @State var needsUpdate = false
-    
-    return ParametersTabView(parameters: $parameters, needsUpdate: $needsUpdate)
+struct ParametersTabView_Previews: PreviewProvider {
+    static var previews: some View {
+        struct PreviewWrapper: View {
+            @State var parameters = SimulationParameters()
+            @State var needsUpdate = false
+            
+            var body: some View {
+                ParametersTabView(parameters: $parameters, needsUpdate: $needsUpdate)
+            }
+        }
+        
+        return PreviewWrapper()
+    }
 }
