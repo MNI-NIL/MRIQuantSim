@@ -10,6 +10,7 @@ import SwiftUI
 struct ParametersTabView: View {
     @Binding var parameters: SimulationParameters
     @Binding var needsUpdate: Bool
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ScrollView {
@@ -24,7 +25,7 @@ struct ParametersTabView: View {
                 
                 parameterSection(title: "Noise Parameters") {
                     Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
-                        .onChange(of: parameters.enableCO2Noise) { _ in needsUpdate = true }
+                        .onChange(of: parameters.enableCO2Noise) { _, _ in needsUpdate = true }
                     
                     parameterRow(
                         title: "CO2 Noise Frequency (Hz)", 
@@ -39,7 +40,7 @@ struct ParametersTabView: View {
                     )
                     
                     Toggle("Enable MRI Noise", isOn: $parameters.enableMRINoise)
-                        .onChange(of: parameters.enableMRINoise) { _ in needsUpdate = true }
+                        .onChange(of: parameters.enableMRINoise) { _, _ in needsUpdate = true }
                     
                     parameterRow(
                         title: "MRI Noise Amplitude (a.u.)",
@@ -50,7 +51,7 @@ struct ParametersTabView: View {
                 
                 parameterSection(title: "Drift Parameters") {
                     Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
-                        .onChange(of: parameters.enableCO2Drift) { _ in needsUpdate = true }
+                        .onChange(of: parameters.enableCO2Drift) { _, _ in needsUpdate = true }
                     
                     parameterRow(
                         title: "CO2 Linear Drift (mmHg)",
@@ -71,7 +72,7 @@ struct ParametersTabView: View {
                     )
                     
                     Toggle("Enable MRI Drift", isOn: $parameters.enableMRIDrift)
-                        .onChange(of: parameters.enableMRIDrift) { _ in needsUpdate = true }
+                        .onChange(of: parameters.enableMRIDrift) { _, _ in needsUpdate = true }
                     
                     parameterRow(
                         title: "MRI Linear Drift (%)",
@@ -107,7 +108,7 @@ struct ParametersTabView: View {
                 .padding(.leading, 8)
         }
         .padding()
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
+        .background(sectionBackgroundColor)
         .cornerRadius(10)
     }
     
@@ -120,25 +121,51 @@ struct ParametersTabView: View {
                 .multilineTextAlignment(.trailing)
                 .frame(width: 80)
                 .padding(8)
-                .background(Color.white)
+                .background(textFieldBackgroundColor)
+                .foregroundColor(textFieldTextColor)
                 .cornerRadius(6)
-                .onChange(of: value.wrappedValue) { _ in needsUpdate = true }
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                )
+                .onChange(of: value.wrappedValue) { _, _ in needsUpdate = true }
                 .disabled(disabled)
         }
     }
+    
+    // MARK: - Color helpers for dark mode support
+    
+    private var sectionBackgroundColor: Color {
+        colorScheme == .dark ? Color(white: 0.2) : Color(white: 0.95)
+    }
+    
+    private var textFieldBackgroundColor: Color {
+        colorScheme == .dark ? Color(white: 0.15) : Color.white
+    }
+    
+    private var textFieldTextColor: Color {
+        colorScheme == .dark ? Color.white : Color.black
+    }
 }
 
-struct ParametersTabView_Previews: PreviewProvider {
+// Preview light mode
+struct ParametersTabView_LightPreview: PreviewProvider {
     static var previews: some View {
-        struct PreviewWrapper: View {
-            @State var parameters = SimulationParameters()
-            @State var needsUpdate = false
-            
-            var body: some View {
-                ParametersTabView(parameters: $parameters, needsUpdate: $needsUpdate)
-            }
-        }
-        
-        return PreviewWrapper()
+        ParametersTabView(
+            parameters: .constant(SimulationParameters()),
+            needsUpdate: .constant(false)
+        )
+        .preferredColorScheme(.light)
+    }
+}
+
+// Preview dark mode
+struct ParametersTabView_DarkPreview: PreviewProvider {
+    static var previews: some View {
+        ParametersTabView(
+            parameters: .constant(SimulationParameters()),
+            needsUpdate: .constant(false)
+        )
+        .preferredColorScheme(.dark)
     }
 }

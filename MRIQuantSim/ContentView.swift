@@ -76,11 +76,15 @@ struct ContentView: View {
             .frame(minHeight: 300)
         }
         .padding()
-        .onChange(of: needsUpdate) { _ in
-            if needsUpdate {
+        .onChange(of: needsUpdate) { _, newValue in
+            if newValue {
                 updateSimulation()
                 needsUpdate = false
             }
+        }
+        // This is necessary to properly handle parameter changes
+        .onChange(of: parameters) { _, _ in 
+            updateSimulation()
         }
         .onAppear {
             // Load parameters if available, otherwise use defaults

@@ -11,6 +11,7 @@ struct AnalysisTabView: View {
     @Binding var parameters: SimulationParameters
     @Binding var simulationData: SimulationData
     @Binding var needsUpdate: Bool
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         ScrollView {
@@ -79,12 +80,12 @@ struct AnalysisTabView: View {
                 
                 Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
                     .padding(.top, 4)
-                    .onChange(of: parameters.useDynamicMRIRange) { _ in needsUpdate = true }
+                    .onChange(of: parameters.useDynamicMRIRange) { _, _ in needsUpdate = true }
             }
             .padding(.leading, 8)
         }
         .padding()
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
+        .background(sectionBackgroundColor)
         .cornerRadius(10)
     }
     
@@ -103,7 +104,7 @@ struct AnalysisTabView: View {
             .padding(.leading, 8)
         }
         .padding()
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
+        .background(sectionBackgroundColor)
         .cornerRadius(10)
     }
     
@@ -134,18 +135,24 @@ struct AnalysisTabView: View {
             .padding(.leading, 8)
         }
         .padding()
-        .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
+        .background(sectionBackgroundColor)
         .cornerRadius(10)
     }
     
     private func modelToggle(title: String, isOn: Binding<Bool>) -> some View {
         Toggle(title, isOn: isOn)
-            .onChange(of: isOn.wrappedValue) { _ in needsUpdate = true }
+            .onChange(of: isOn.wrappedValue) { _, _ in needsUpdate = true }
     }
     
     private func betaParamName(index: Int) -> String {
         let baseNames = ["Stimulus Response", "Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
         return index < baseNames.count ? baseNames[index] : "Parameter \(index)"
+    }
+    
+    // MARK: - Color helpers for dark mode support
+    
+    private var sectionBackgroundColor: Color {
+        colorScheme == .dark ? Color(white: 0.2) : Color(white: 0.95)
     }
 }
 
@@ -153,6 +160,7 @@ struct ToggleButton: View {
     let title: String
     @Binding var isOn: Bool
     var onChange: () -> Void
+    @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
         Button(action: {
@@ -162,35 +170,60 @@ struct ToggleButton: View {
             Text(title)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
-                .background(isOn ? Color.accentColor : Color.gray.opacity(0.3))
-                .foregroundColor(isOn ? .white : .primary)
+                .background(buttonBackgroundColor)
+                .foregroundColor(buttonTextColor)
                 .cornerRadius(8)
         }
         .buttonStyle(PlainButtonStyle())
     }
+    
+    private var buttonBackgroundColor: Color {
+        if isOn {
+            return Color.accentColor
+        } else {
+            return colorScheme == .dark ? Color(white: 0.25) : Color(white: 0.9)
+        }
+    }
+    
+    private var buttonTextColor: Color {
+        if isOn {
+            return .white
+        } else {
+            return colorScheme == .dark ? Color.white : Color.primary
+        }
+    }
 }
 
-struct AnalysisTabView_Previews: PreviewProvider {
+// Preview light mode
+struct AnalysisTabView_LightPreview: PreviewProvider {
     static var previews: some View {
-        struct PreviewWrapper: View {
-            @State var parameters = SimulationParameters()
-            @State var simulationData = SimulationData()
-            @State var needsUpdate = false
-            
-            init() {
-                simulationData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
-                simulationData.percentChangeMetric = 2.08
-            }
-            
-            var body: some View {
-                AnalysisTabView(
-                    parameters: $parameters,
-                    simulationData: $simulationData,
-                    needsUpdate: $needsUpdate
-                )
-            }
-        }
+        let parameters = SimulationParameters()
+        let simulationData = SimulationData()
+        simulationData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
+        simulationData.percentChangeMetric = 2.08
         
-        return PreviewWrapper()
+        return AnalysisTabView(
+            parameters: .constant(parameters),
+            simulationData: .constant(simulationData), 
+            needsUpdate: .constant(false)
+        )
+        .preferredColorScheme(.light)
+    }
+}
+
+// Preview dark mode
+struct AnalysisTabView_DarkPreview: PreviewProvider {
+    static var previews: some View {
+        let parameters = SimulationParameters()
+        let simulationData = SimulationData()
+        simulationData.betaParams = [25.0, 1200.0, 3.5, 1.2, 0.8]
+        simulationData.percentChangeMetric = 2.08
+        
+        return AnalysisTabView(
+            parameters: .constant(parameters),
+            simulationData: .constant(simulationData), 
+            needsUpdate: .constant(false)
+        )
+        .preferredColorScheme(.dark)
     }
 }
