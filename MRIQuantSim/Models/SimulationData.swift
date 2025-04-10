@@ -63,18 +63,25 @@ class SimulationData: ObservableObject {
     
     private func generateCO2Signal(parameters: SimulationParameters) {
         let samplingRate = parameters.co2SamplingRate
-        let totalSamples = Int(totalDuration * samplingRate)
         let breathingRateHz = parameters.breathingRate / 60.0 // Convert to Hz
         
+        // Generate time points up to exactly the total duration
         co2TimePoints = stride(from: 0, to: totalDuration, by: 1.0/samplingRate).map { $0 }
-        co2RawSignal = Array(repeating: 0.0, count: totalSamples)
         
-        for i in 0..<totalSamples {
+        // Ensure we include the exact end point if needed
+        if co2TimePoints.last != totalDuration {
+            co2TimePoints.append(totalDuration)
+        }
+        
+        let actualSamples = co2TimePoints.count
+        co2RawSignal = Array(repeating: 0.0, count: actualSamples)
+        
+        for i in 0..<actualSamples {
             let time = co2TimePoints[i]
             
-            // Determine if we're in a CO2 block
+            // Determine if we're in a CO2 block (only within simulation time)
             let blockNumber = Int(time / blockDuration)
-            let isEnrichedBlock = blockNumber % 2 == 1
+            let isEnrichedBlock = blockNumber % 2 == 1 && time < totalDuration
             
             // Base respiratory oscillation
             var respiratoryPhase = 2.0 * Double.pi * breathingRateHz * time
@@ -107,25 +114,29 @@ class SimulationData: ObservableObject {
     
     private func generateMRISignal(parameters: SimulationParameters, regenerateNoise: Bool = false) {
         let samplingInterval = parameters.mriSamplingInterval
-        let totalSamples = Int(totalDuration / samplingInterval) + 1
+        let totalSamples = Int(totalDuration / samplingInterval)
         
+        // Generate time points exactly up to but not exceeding the total duration
         mriTimePoints = stride(from: 0, to: totalDuration, by: samplingInterval).map { $0 }
-        if mriTimePoints.count < totalSamples {
-            mriTimePoints.append(totalDuration) // Ensure we have the right number of time points
+        
+        // Ensure the last time point is exactly at the total duration if needed
+        if mriTimePoints.last != totalDuration {
+            mriTimePoints.append(totalDuration)
         }
         
-        mriRawSignal = Array(repeating: 0.0, count: totalSamples)
+        let actualSamples = mriTimePoints.count
+        mriRawSignal = Array(repeating: 0.0, count: actualSamples)
         
         // Generate or regenerate noise if needed
-        if mriNoiseValues.isEmpty || regenerateNoise || mriNoiseValues.count != totalSamples {
-            print("Generating new noise values (regenerateNoise=\(regenerateNoise), isEmpty=\(mriNoiseValues.isEmpty), countMismatch=\(mriNoiseValues.count != totalSamples))")
+        if mriNoiseValues.isEmpty || regenerateNoise || mriNoiseValues.count != actualSamples {
+            print("Generating new noise values (regenerateNoise=\(regenerateNoise), isEmpty=\(mriNoiseValues.isEmpty), countMismatch=\(mriNoiseValues.count != actualSamples))")
             
             // Always start with zeroes
-            mriNoiseValues = Array(repeating: 0.0, count: totalSamples)
+            mriNoiseValues = Array(repeating: 0.0, count: actualSamples)
             
             if parameters.enableMRINoise {
                 // Generate Gaussian noise for each time point
-                for i in 0..<totalSamples {
+                for i in 0..<actualSamples {
                     let noiseStdDev = parameters.mriNoiseAmplitude
                     let u1 = Double.random(in: 0..<1)
                     let u2 = Double.random(in: 0..<1)
@@ -141,15 +152,17 @@ class SimulationData: ObservableObject {
         }
         
         // Generate signal with consistent noise
-        for i in 0..<totalSamples {
+        for i in 0..<actualSamples {
             let time = mriTimePoints[i]
             
-            // Determine if we're in a CO2 block
-            let blockNumber = Int(time / blockDuration)
-            let isEnrichedBlock = blockNumber % 2 == 1
-            
-            // Base MRI signal
+            // Base MRI signal - default to baseline
             var signalValue = parameters.mriBaselineSignal
+            
+            // Determine if we're in a CO2 block (add response if in enriched block)
+            // This ensures we only have a response during the exact simulation duration
+            let blockNumber = Int(time / blockDuration)
+            let isEnrichedBlock = blockNumber % 2 == 1 && time < totalDuration
+            
             if isEnrichedBlock {
                 signalValue += parameters.mriResponseAmplitude
             }
@@ -225,16 +238,26 @@ class SimulationData: ObservableObject {
     }
     
     private func generateBlockPatterns(parameters: SimulationParameters) {
-        // Generate CO2 block pattern at CO2 sampling rate
+        // Generate CO2 block pattern at CO2 sampling rate - only include valid time points
         co2BlockPattern = co2TimePoints.map { time -> Double in
-            let blockNumber = Int(time / blockDuration)
-            return blockNumber % 2 == 1 ? 1.0 : 0.0
+            // Only consider blocks within the simulation time range
+            if time < totalDuration {
+                let blockNumber = Int(time / blockDuration)
+                return blockNumber % 2 == 1 ? 1.0 : 0.0
+            } else {
+                return 0.0 // Anything outside simulation time is baseline
+            }
         }
         
-        // Generate MRI block pattern at MRI sampling rate
+        // Generate MRI block pattern at MRI sampling rate - only include valid time points
         mriBlockPattern = mriTimePoints.map { time -> Double in
-            let blockNumber = Int(time / blockDuration)
-            return blockNumber % 2 == 1 ? 1.0 : 0.0
+            // Only consider blocks within the simulation time range
+            if time < totalDuration {
+                let blockNumber = Int(time / blockDuration)
+                return blockNumber % 2 == 1 ? 1.0 : 0.0
+            } else {
+                return 0.0 // Anything outside simulation time is baseline
+            }
         }
     }
     
