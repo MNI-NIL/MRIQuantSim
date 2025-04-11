@@ -55,4 +55,45 @@ final class SimulationParameters {
     @Transient var percentChangeMetric: Double = 0.0
     
     init() {}
+    
+    // Create a representation of parameter state as a struct
+    // This avoids using copy() which might not be compatible with @Model
+    @Transient var cachedParamState: ParameterState?
+    
+    func getParameterState() -> ParameterState {
+        return ParameterState(
+            mriNoiseAmplitude: mriNoiseAmplitude,
+            mriBaselineSignal: mriBaselineSignal,
+            mriResponseAmplitude: mriResponseAmplitude,
+            mriLinearDrift: mriLinearDrift,
+            mriQuadraticDrift: mriQuadraticDrift,
+            mriCubicDrift: mriCubicDrift,
+            enableMRINoise: enableMRINoise,
+            enableMRIDrift: enableMRIDrift
+        )
+    }
+}
+
+// Separate struct to hold parameter state for comparison
+struct ParameterState: Equatable {
+    let mriNoiseAmplitude: Double
+    let mriBaselineSignal: Double
+    let mriResponseAmplitude: Double
+    let mriLinearDrift: Double
+    let mriQuadraticDrift: Double
+    let mriCubicDrift: Double
+    let enableMRINoise: Bool
+    let enableMRIDrift: Bool
+    
+    // Helper method to check if only the noise amplitude changed
+    func onlyNoiseAmplitudeChangedFrom(previous: ParameterState) -> Bool {
+        return mriNoiseAmplitude != previous.mriNoiseAmplitude &&
+               mriBaselineSignal == previous.mriBaselineSignal &&
+               mriResponseAmplitude == previous.mriResponseAmplitude &&
+               mriLinearDrift == previous.mriLinearDrift &&
+               mriQuadraticDrift == previous.mriQuadraticDrift &&
+               mriCubicDrift == previous.mriCubicDrift &&
+               enableMRINoise == previous.enableMRINoise &&
+               enableMRIDrift == previous.enableMRIDrift
+    }
 }

@@ -61,8 +61,8 @@ class SimulationData: ObservableObject {
     @Published var betaParams: [Double] = []
     @Published var percentChangeMetric: Double = 0.0
     
-    // Store noise values separately so they can be reused
-    private var mriNoiseValues: [Double] = []
+    // Store normalized noise values (mean 0, std 1) separately so they can be reused
+    private var mriNormalizedNoiseValues: [Double] = []
     
     // Helper methods to create TimeSeriesData objects
     func getCO2SeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
@@ -181,6 +181,68 @@ class SimulationData: ObservableObject {
         self.objectWillChange.send()
     }
     
+    /// Update the MRI signal using current parameters but keeping the same noise pattern
+    /// This is used when parameters like noise amplitude change but we want to keep the pattern
+    func updateMRISignalWithSameNoisePattern(parameters: SimulationParameters) {
+        print("Updating MRI signal with same noise pattern, amplitude: \(parameters.mriNoiseAmplitude)")
+        
+        // Only update if we have valid normalized noise values
+        if !mriNormalizedNoiseValues.isEmpty && !mriTimePoints.isEmpty {
+            print("Using existing \(mriNormalizedNoiseValues.count) normalized noise values")
+            
+            // Generate new signal using existing noise pattern but with updated amplitude
+            let actualSamples = mriTimePoints.count
+            mriRawSignal = Array(repeating: 0.0, count: actualSamples)
+            
+            // Generate signal using existing normalized noise but current amplitude
+            for i in 0..<actualSamples {
+                let time = mriTimePoints[i]
+                
+                // Base MRI signal - default to baseline
+                var signalValue = parameters.mriBaselineSignal
+                
+                // Determine if we're in a CO2 block (add response if in enriched block)
+                let blockNumber = Int(time / blockDuration)
+                let isEnrichedBlock = blockNumber % 2 == 1 && time < totalDuration
+                
+                if isEnrichedBlock {
+                    signalValue += parameters.mriResponseAmplitude
+                }
+                
+                // Add scaled noise if enabled - multiply normalized noise by current amplitude
+                if parameters.enableMRINoise && i < mriNormalizedNoiseValues.count {
+                    signalValue += mriNormalizedNoiseValues[i] * parameters.mriNoiseAmplitude
+                }
+                
+                // Add drift terms if enabled
+                if parameters.enableMRIDrift {
+                    let normalizedTime = time / totalDuration
+                    signalValue += parameters.mriLinearDrift * normalizedTime * parameters.mriBaselineSignal / 100.0
+                    signalValue += parameters.mriQuadraticDrift * pow(normalizedTime, 2) * parameters.mriBaselineSignal / 100.0
+                    signalValue += parameters.mriCubicDrift * pow(normalizedTime, 3) * parameters.mriBaselineSignal / 100.0
+                }
+                
+                mriRawSignal[i] = signalValue
+            }
+            
+            // Initialize detrended and modeled signals
+            mriDetrendedSignal = mriRawSignal
+            mriModeledSignal = mriRawSignal
+            
+            // Re-run downstream analysis, which will recalculate both
+            // the detrended signal and the modeled signal if needed
+            if parameters.showModelOverlay {
+                performDetrendingAnalysis(parameters: parameters)
+            }
+            // Even if not showing model overlay, we need to generate block patterns
+            // to ensure all views have the data they need
+            generateBlockPatterns(parameters: parameters)
+            
+            // Force UI refresh
+            objectWillChange.send()
+        }
+    }
+    
     private func generateCO2Signal(parameters: SimulationParameters) {
         let samplingRate = parameters.co2SamplingRate
         let breathingRateHz = parameters.breathingRate / 60.0 // Convert to Hz
@@ -234,7 +296,7 @@ class SimulationData: ObservableObject {
     
     private func generateMRISignal(parameters: SimulationParameters, regenerateNoise: Bool = false) {
         let samplingInterval = parameters.mriSamplingInterval
-        let totalSamples = Int(totalDuration / samplingInterval)
+        //let totalSamples = Int(totalDuration / samplingInterval)
         
         // Generate time points exactly up to but not exceeding the total duration
         mriTimePoints = stride(from: 0, to: totalDuration, by: samplingInterval).map { $0 }
@@ -247,31 +309,34 @@ class SimulationData: ObservableObject {
         let actualSamples = mriTimePoints.count
         mriRawSignal = Array(repeating: 0.0, count: actualSamples)
         
-        // Generate or regenerate noise if needed
-        if mriNoiseValues.isEmpty || regenerateNoise || mriNoiseValues.count != actualSamples {
-            print("Generating new noise values (regenerateNoise=\(regenerateNoise), isEmpty=\(mriNoiseValues.isEmpty), countMismatch=\(mriNoiseValues.count != actualSamples))")
+        // Generate or regenerate normalized noise values if needed
+        // Only regenerate if explicitly requested or if array is empty/wrong size
+        if mriNormalizedNoiseValues.isEmpty || regenerateNoise || mriNormalizedNoiseValues.count != actualSamples {
+            print("Generating NEW normalized noise values")
+            print("  - regenerateNoise: \(regenerateNoise)")
+            print("  - isEmpty: \(mriNormalizedNoiseValues.isEmpty)")
+            print("  - countMismatch: \(mriNormalizedNoiseValues.count) vs \(actualSamples)")
             
-            // Always start with zeroes
-            mriNoiseValues = Array(repeating: 0.0, count: actualSamples)
+            // Generate normalized Gaussian noise values (mean 0, std 1)
+            mriNormalizedNoiseValues = Array(repeating: 0.0, count: actualSamples)
             
-            if parameters.enableMRINoise {
-                // Generate Gaussian noise for each time point
-                for i in 0..<actualSamples {
-                    let noiseStdDev = parameters.mriNoiseAmplitude
-                    let u1 = Double.random(in: 0..<1)
-                    let u2 = Double.random(in: 0..<1)
-                    let z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * Double.pi * u2)
-                    mriNoiseValues[i] = z0 * noiseStdDev
-                }
+            // Use Box-Muller transform to generate normally distributed random values
+            for i in 0..<actualSamples {
+                let u1 = Double.random(in: 0..<1)
+                let u2 = Double.random(in: 0..<1)
+                let z0 = sqrt(-2.0 * log(u1)) * cos(2.0 * Double.pi * u2)
                 
-                // Print the first few noise values for debugging
-                if totalSamples > 0 {
-                    print("First noise value: \(mriNoiseValues[0])")
-                }
+                // Store normalized noise (mean 0, std 1)
+                mriNormalizedNoiseValues[i] = z0
+            }
+            
+            // Print the first normalized noise value for debugging
+            if actualSamples > 0 {
+                print("First normalized noise value: \(mriNormalizedNoiseValues[0])")
             }
         }
         
-        // Generate signal with consistent noise
+        // Generate signal with consistent noise pattern but current amplitude
         for i in 0..<actualSamples {
             let time = mriTimePoints[i]
             
@@ -287,9 +352,9 @@ class SimulationData: ObservableObject {
                 signalValue += parameters.mriResponseAmplitude
             }
             
-            // Add pre-computed noise if enabled
+            // Add scaled noise if enabled - multiply normalized noise by current amplitude
             if parameters.enableMRINoise {
-                signalValue += mriNoiseValues[i]
+                signalValue += mriNormalizedNoiseValues[i] * parameters.mriNoiseAmplitude
             }
             
             // Add drift terms if enabled
@@ -310,10 +375,14 @@ class SimulationData: ObservableObject {
     
     /// Public method to regenerate MRI noise values
     func regenerateMRINoise(parameters: SimulationParameters) {
-        // First, explicitly clear the noise values to force regeneration
-        mriNoiseValues = []
+        print("Explicitly regenerating MRI noise pattern")
         
-        // Regenerate the signal with new noise
+        // First, explicitly clear the normalized noise values to force regeneration
+        print("  - Clearing \(mriNormalizedNoiseValues.count) existing normalized noise values")
+        mriNormalizedNoiseValues = []
+        
+        // Regenerate the signal with completely new noise pattern
+        print("  - Generating new noise pattern with regenerateNoise=true")
         generateMRISignal(parameters: parameters, regenerateNoise: true)
         
         // Re-run downstream analysis that depends on the signal
@@ -325,7 +394,7 @@ class SimulationData: ObservableObject {
         }
         
         // Print some debug info - will appear in console
-        print("MRI Noise regenerated, \(mriNoiseValues.count) values")
+        print("MRI Noise regenerated successfully, \(mriNormalizedNoiseValues.count) normalized values generated")
         
         // Force UI refresh
         objectWillChange.send()

@@ -31,18 +31,54 @@ class SimulationController: ObservableObject {
         // Reset and regenerate all data
         simulationData.generateSimulatedData(parameters: parameters, regenerateNoise: regenerateNoise)
         
+        // Update parameter state cache after a full simulation update
+        previousParamState = parameters.getParameterState()
+        
         // Explicitly notify observers of change
         objectWillChange.send()
     }
     
     // Update when any parameter changes
     func parameterChanged() {
+        // If only the MRI noise amplitude has changed, just update the MRI signal
+        // without regenerating the noise pattern
+        let currentState = parameters.getParameterState()
+        
+        if let previousState = previousParamState {
+            let onlyMRINoiseAmplitudeChanged = currentState.onlyNoiseAmplitudeChangedFrom(previous: previousState)
+            
+            print("Parameter change detected:")
+            print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
+            print("  - Only amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
+            
+            if onlyMRINoiseAmplitudeChanged {
+                print("Updating with same noise pattern, new amplitude: \(parameters.mriNoiseAmplitude)")
+                // Just update MRI signal with the same noise pattern but new amplitude
+                simulationData.updateMRISignalWithSameNoisePattern(parameters: parameters)
+                
+                // Update previousState to current values
+                previousParamState = currentState
+                return
+            }
+        }
+        
+        // For any other parameter changes, do a full update
         updateSimulation(regenerateNoise: false)
+        
+        // Store current state for future comparison
+        previousParamState = currentState
     }
+    
+    // Keep track of previous parameter state to detect amplitude-only changes
+    private var previousParamState: ParameterState?
     
     // Method specifically for regenerating MRI noise
     func regenerateMRINoise() {
         simulationData.regenerateMRINoise(parameters: parameters)
+        
+        // Update parameter state after regeneration
+        previousParamState = parameters.getParameterState()
+        
         objectWillChange.send()
     }
 }
