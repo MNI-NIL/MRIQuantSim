@@ -16,6 +16,7 @@ final class SimulationParameters {
     var mriSamplingInterval: Double = 2.0 // seconds
     var mriBaselineSignal: Double = 1200.0 // arbitrary units
     var mriResponseAmplitude: Double = 25.0 // arbitrary units
+    var co2ResponseAmplitude: Double = 5.0 // mmHg
     
     // Noise Parameters
     var co2VarianceFrequency: Double = 0.05 // Hz
@@ -74,6 +75,7 @@ final class SimulationParameters {
             enableMRIDrift: enableMRIDrift,
             
             // CO2 parameters
+            co2ResponseAmplitude: co2ResponseAmplitude,
             co2VarianceFrequency: co2VarianceFrequency,
             co2VarianceAmplitude: co2VarianceAmplitude,
             co2AmplitudeVariance: co2AmplitudeVariance,
@@ -101,6 +103,7 @@ struct ParameterState: Equatable {
     let enableMRIDrift: Bool
     
     // CO2 parameters
+    let co2ResponseAmplitude: Double
     let co2VarianceFrequency: Double
     let co2VarianceAmplitude: Double
     let co2AmplitudeVariance: Double
@@ -125,6 +128,7 @@ struct ParameterState: Equatable {
                enableMRIDrift == previous.enableMRIDrift &&
                
                // All CO2 parameters must be the same
+               co2ResponseAmplitude == previous.co2ResponseAmplitude &&
                co2VarianceFrequency == previous.co2VarianceFrequency &&
                co2VarianceAmplitude == previous.co2VarianceAmplitude &&
                co2AmplitudeVariance == previous.co2AmplitudeVariance &&
@@ -141,6 +145,7 @@ struct ParameterState: Equatable {
     func onlyCO2VarianceParamsChangedFrom(previous: ParameterState) -> Bool {
         // Check if any CO2 variance parameter changed
         let co2ParamsChanged = 
+            co2ResponseAmplitude != previous.co2ResponseAmplitude ||
             co2VarianceFrequency != previous.co2VarianceFrequency ||
             co2VarianceAmplitude != previous.co2VarianceAmplitude ||
             co2AmplitudeVariance != previous.co2AmplitudeVariance ||
