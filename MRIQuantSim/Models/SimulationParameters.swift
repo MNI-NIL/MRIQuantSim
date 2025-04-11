@@ -25,7 +25,7 @@ final class SimulationParameters {
     var mriResponseAmplitude: Double = 25.0 // arbitrary units
     var co2ResponseAmplitude: Double = 5.0 // mmHg
     
-    // Response Shape Parameters
+    // Response Shape Parameters for Signal Simulation
     // Store as a string to avoid issues with SwiftData and enums
     var responseShapeTypeString: String = ResponseShapeType.boxcar.rawValue
     var responseRiseTimeConstant: Double = 20.0 // seconds
@@ -40,6 +40,37 @@ final class SimulationParameters {
         set {
             responseShapeTypeString = newValue.rawValue
         }
+    }
+    
+    // Analysis Model Parameters (for GLM analysis - potentially different from simulation)
+    var analysisModelTypeString: String = ResponseShapeType.boxcar.rawValue
+    var analysisRiseTimeConstant: Double = 20.0 // seconds
+    var analysisFallTimeConstant: Double = 20.0 // seconds
+    
+    // Computed property for analysis model type
+    @Transient
+    var analysisModelType: ResponseShapeType {
+        get {
+            ResponseShapeType(rawValue: analysisModelTypeString) ?? .boxcar
+        }
+        set {
+            analysisModelTypeString = newValue.rawValue
+        }
+    }
+    
+    // Method to copy simulation time constants to analysis time constants
+    func copySimulationTimeConstantsToAnalysis() {
+        // Only make sense if simulation is using exponential model
+        if responseShapeType == .exponential {
+            analysisModelTypeString = responseShapeTypeString
+            analysisRiseTimeConstant = responseRiseTimeConstant
+            analysisFallTimeConstant = responseFallTimeConstant
+        }
+    }
+    
+    // Function to check if the simulation model is using exponential shape
+    func isSimulationUsingExponential() -> Bool {
+        return responseShapeType == .exponential
     }
     
     // Noise Parameters
@@ -105,10 +136,15 @@ final class SimulationParameters {
             co2AmplitudeVariance: co2AmplitudeVariance,
             enableCO2Variance: enableCO2Variance,
             
-            // Response shape parameters
+            // Response shape parameters (for simulation)
             responseShapeTypeString: responseShapeTypeString,
             responseRiseTimeConstant: responseRiseTimeConstant,
             responseFallTimeConstant: responseFallTimeConstant,
+            
+            // Analysis model parameters
+            analysisModelTypeString: analysisModelTypeString,
+            analysisRiseTimeConstant: analysisRiseTimeConstant,
+            analysisFallTimeConstant: analysisFallTimeConstant,
             
             // Model terms
             includeConstantTerm: includeConstantTerm,
@@ -138,14 +174,23 @@ struct ParameterState: Equatable {
     let co2AmplitudeVariance: Double
     let enableCO2Variance: Bool
     
-    // Response shape parameters
+    // Response shape parameters (for simulation)
     let responseShapeTypeString: String
     let responseRiseTimeConstant: Double
     let responseFallTimeConstant: Double
     
-    // Computed property for convenience
+    // Analysis model parameters
+    let analysisModelTypeString: String
+    let analysisRiseTimeConstant: Double
+    let analysisFallTimeConstant: Double
+    
+    // Computed properties for convenience
     var responseShapeType: ResponseShapeType {
         ResponseShapeType(rawValue: responseShapeTypeString) ?? .boxcar
+    }
+    
+    var analysisModelType: ResponseShapeType {
+        ResponseShapeType(rawValue: analysisModelTypeString) ?? .boxcar
     }
     
     // Model terms
@@ -251,6 +296,50 @@ struct ParameterState: Equatable {
                co2VarianceAmplitude == previous.co2VarianceAmplitude &&
                co2AmplitudeVariance == previous.co2AmplitudeVariance &&
                enableCO2Variance == previous.enableCO2Variance &&
+               
+               // All analysis model parameters must be the same
+               analysisModelTypeString == previous.analysisModelTypeString &&
+               analysisRiseTimeConstant == previous.analysisRiseTimeConstant &&
+               analysisFallTimeConstant == previous.analysisFallTimeConstant &&
+               
+               // All model terms must be the same
+               includeConstantTerm == previous.includeConstantTerm &&
+               includeLinearTerm == previous.includeLinearTerm &&
+               includeQuadraticTerm == previous.includeQuadraticTerm &&
+               includeCubicTerm == previous.includeCubicTerm
+    }
+    
+    // Helper method to check if only analysis model parameters changed
+    func analysisModelParamsChangedFrom(previous: ParameterState) -> Bool {
+        // Check if any analysis model parameter changed
+        let analysisParamsChanged = 
+            analysisModelTypeString != previous.analysisModelTypeString ||
+            analysisRiseTimeConstant != previous.analysisRiseTimeConstant ||
+            analysisFallTimeConstant != previous.analysisFallTimeConstant;
+            
+        // And all other parameters remain the same
+        return analysisParamsChanged &&
+               // All MRI parameters must be the same
+               mriNoiseAmplitude == previous.mriNoiseAmplitude &&
+               mriBaselineSignal == previous.mriBaselineSignal &&
+               mriResponseAmplitude == previous.mriResponseAmplitude &&
+               mriLinearDrift == previous.mriLinearDrift &&
+               mriQuadraticDrift == previous.mriQuadraticDrift &&
+               mriCubicDrift == previous.mriCubicDrift &&
+               enableMRINoise == previous.enableMRINoise &&
+               enableMRIDrift == previous.enableMRIDrift &&
+               
+               // All CO2 parameters must be the same
+               co2ResponseAmplitude == previous.co2ResponseAmplitude &&
+               co2VarianceFrequency == previous.co2VarianceFrequency &&
+               co2VarianceAmplitude == previous.co2VarianceAmplitude &&
+               co2AmplitudeVariance == previous.co2AmplitudeVariance &&
+               enableCO2Variance == previous.enableCO2Variance &&
+               
+               // All simulation response shape parameters must be the same
+               responseShapeTypeString == previous.responseShapeTypeString &&
+               responseRiseTimeConstant == previous.responseRiseTimeConstant &&
+               responseFallTimeConstant == previous.responseFallTimeConstant &&
                
                // All model terms must be the same
                includeConstantTerm == previous.includeConstantTerm &&

@@ -13,6 +13,7 @@ struct AnalysisTabView: View {
     let simulationData: SimulationData
     var onParameterChanged: () -> Void
     var onRegenerateNoise: () -> Void // Add a new callback for noise regeneration
+    var onForceRefresh: () -> Void = {} // Optional callback to force UI refresh
     @Environment(\.colorScheme) var colorScheme
     
     // Check if all model terms would be disabled and prevent that
@@ -36,6 +37,9 @@ struct AnalysisTabView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
+                // Analysis Model Specification
+                analysisModelSection
+                
                 // Detrending Model Components
                 if parameters.showModelOverlay {
                     detrendingOptionsSection
@@ -51,6 +55,106 @@ struct AnalysisTabView: View {
     }
     
     // Display options have been moved to a dedicated Display tab
+    
+    private var analysisModelSection: some View {
+        CollapsibleSection(title: "Analysis Model Specification", sectionId: "analysis_model") {
+            VStack(alignment: .leading, spacing: 12) {
+                // Description text
+                Text("Specify the shape of the hemodynamic response function used in the GLM analysis. This can be different from the signal simulation model to demonstrate model mis-specification effects.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.bottom, 4)
+                
+                // Response shape picker
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Analysis Model Shape")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    
+                    Picker("", selection: $parameters.analysisModelType) {
+                        ForEach(ResponseShapeType.allCases, id: \.self) { shapeType in
+                            Text(shapeType.rawValue).tag(shapeType)
+                        }
+                    }
+                    .pickerStyle(SegmentedPickerStyle())
+                    .onChange(of: parameters.analysisModelType) { _, _ in 
+                        onParameterChanged()
+                        onForceRefresh() // Force immediate refresh
+                    }
+                    .padding(.bottom, 4)
+                }
+                
+                // Only show time constants if exponential is selected
+                if parameters.analysisModelType == .exponential {
+                    VStack(alignment: .leading, spacing: 10) {
+                        // Rise time constant
+                        HStack(spacing: 15) {
+                            Text("Rise Time Constant (s)")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            TextField("", value: $parameters.analysisRiseTimeConstant, format: .number)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                                .padding(8)
+                                .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                                .onSubmit { 
+                                    onParameterChanged() 
+                                    onForceRefresh() // Force immediate refresh
+                                }
+                        }
+                        
+                        // Fall time constant
+                        HStack(spacing: 15) {
+                            Text("Fall Time Constant (s)")
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            
+                            TextField("", value: $parameters.analysisFallTimeConstant, format: .number)
+                                .multilineTextAlignment(.trailing)
+                                .frame(width: 80)
+                                .padding(8)
+                                .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                .cornerRadius(6)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 6)
+                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                )
+                                .onSubmit { 
+                                    onParameterChanged() 
+                                    onForceRefresh() // Force immediate refresh
+                                }
+                        }
+                        
+                        // Copy from simulation button
+                        HStack {
+                            Spacer()
+                            Button(action: {
+                                parameters.copySimulationTimeConstantsToAnalysis()
+                                onParameterChanged()
+                                onForceRefresh() // Force immediate refresh
+                            }) {
+                                Text("Copy from Simulation Model")
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(parameters.isSimulationUsingExponential() ? Color.accentColor : Color.gray)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                            }
+                            .disabled(!parameters.isSimulationUsingExponential())
+                            .buttonStyle(PlainButtonStyle())
+                        }
+                        .padding(.top, 8)
+                    }
+                }
+            }
+        }
+    }
     
     private var detrendingOptionsSection: some View {
         // Get the shared CollapsibleSection component from ParametersTabView
@@ -111,7 +215,7 @@ struct AnalysisTabView: View {
                         Text(String(format: "%.2f", value))
                     }
                 }
-                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)")
+                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisRiseTimeConstant)-\(parameters.analysisFallTimeConstant)")
             }
         }
     }

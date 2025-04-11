@@ -59,6 +59,12 @@ class SimulationController: ObservableObject {
                 previousState.responseShapeTypeString != currentState.responseShapeTypeString ||
                 previousState.responseRiseTimeConstant != currentState.responseRiseTimeConstant ||
                 previousState.responseFallTimeConstant != currentState.responseFallTimeConstant
+                
+            // Check if analysis model parameters have changed
+            let analysisModelChanged =
+                previousState.analysisModelTypeString != currentState.analysisModelTypeString ||
+                previousState.analysisRiseTimeConstant != currentState.analysisRiseTimeConstant ||
+                previousState.analysisFallTimeConstant != currentState.analysisFallTimeConstant
             
             print("Parameter change detected:")
             print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
@@ -72,6 +78,7 @@ class SimulationController: ObservableObject {
             print("  - Only MRI amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
             print("  - Only CO₂ variance changed: \(onlyCO2VarianceChanged)")
             print("  - Response shape changed: \(responseShapeChanged)")
+            print("  - Analysis model changed: \(analysisModelChanged)")
             
             if modelTermsChanged {
                 print("Model terms changed, updating analysis without regenerating signals")
@@ -116,6 +123,21 @@ class SimulationController: ObservableObject {
                 previousParamState = currentState
                 return
             }
+            else if analysisModelChanged {
+                print("Analysis model parameters changed, regenerating model analysis only")
+                // Only need to regenerate block patterns and rerun the model analysis
+                // This doesn't require regenerating the raw signal data
+                simulationData.generateBlockPatterns(parameters: parameters)
+                simulationData.performModelAnalysis(parameters: parameters)
+                
+                // Force a view refresh by incrementing the trigger
+                viewRefreshTrigger += 1
+                print("Incremented view refresh trigger to \(viewRefreshTrigger) due to analysis model change")
+                
+                // Update previousState to current values
+                previousParamState = currentState
+                return
+            }
         }
         
         // For any other parameter changes, do a full update
@@ -135,6 +157,14 @@ class SimulationController: ObservableObject {
         // Update parameter state after regeneration
         previousParamState = parameters.getParameterState()
         
+        // Force UI refresh
+        viewRefreshTrigger += 1
+        objectWillChange.send()
+    }
+    
+    // Method to explicitly force view refresh without parameter change
+    func forceViewRefresh() {
+        viewRefreshTrigger += 1
         objectWillChange.send()
     }
     
@@ -195,7 +225,8 @@ struct ContentView: View {
                     parameters: $simulator.parameters,
                     simulationData: simulator.simulationData,
                     onParameterChanged: simulator.parameterChanged,
-                    onRegenerateNoise: simulator.regenerateMRINoise
+                    onRegenerateNoise: simulator.regenerateMRINoise,
+                    onForceRefresh: simulator.forceViewRefresh
                 )
                 .tabItem {
                     Label("Analysis", systemImage: "chart.bar")

@@ -568,8 +568,9 @@ class SimulationData: ObservableObject {
         }
     }
     
-    private func generateBlockPatterns(parameters: SimulationParameters) {
+    func generateBlockPatterns(parameters: SimulationParameters) {
         // Generate CO2 block pattern at CO2 sampling rate - only include valid time points
+        // For CO2, we always use simple boxcar function since this is for visualization only
         co2BlockPattern = co2TimePoints.map { time -> Double in
             // Only consider blocks within the simulation time range
             if time < totalDuration {
@@ -580,15 +581,56 @@ class SimulationData: ObservableObject {
             }
         }
         
-        // Generate MRI block pattern at MRI sampling rate - only include valid time points
-        mriBlockPattern = mriTimePoints.map { time -> Double in
-            // Only consider blocks within the simulation time range
-            if time < totalDuration {
-                let blockNumber = Int(time / blockDuration)
-                return blockNumber % 2 == 1 ? 1.0 : 0.0
-            } else {
-                return 0.0 // Anything outside simulation time is baseline
+        // Generate MRI block pattern at MRI sampling rate with the specified analysis model
+        mriBlockPattern = Array(repeating: 0.0, count: mriTimePoints.count)
+        
+        // Generate the block pattern based on analysis model type
+        for i in 0..<mriTimePoints.count {
+            let time = mriTimePoints[i]
+            
+            // Skip if outside simulation time
+            if time >= totalDuration {
+                continue
             }
+            
+            // Determine current block and time within this block
+            let blockNumber = Int(time / blockDuration)
+            let isEnrichedBlock = blockNumber % 2 == 1
+            let timeInBlock = time - (Double(blockNumber) * blockDuration)
+            
+            // Calculate response factor (0.0-1.0) based on selected analysis model
+            var responseFactor = 0.0
+            
+            if isEnrichedBlock {
+                // We're in an enriched block
+                switch parameters.analysisModelType {
+                case .boxcar:
+                    // Simple step response (boxcar)
+                    responseFactor = 1.0
+                    
+                case .exponential:
+                    // Exponential approach to plateau during rising phase
+                    let riseTimeConstant = parameters.analysisRiseTimeConstant
+                    if riseTimeConstant > 0 {
+                        responseFactor = 1.0 - exp(-timeInBlock / riseTimeConstant)
+                    } else {
+                        // Fallback to boxcar if time constant is invalid
+                        responseFactor = 1.0
+                    }
+                }
+            } else if blockNumber > 0 {
+                // If we're in a baseline block after an enriched block, apply exponential decay
+                if parameters.analysisModelType == .exponential {
+                    let fallTimeConstant = parameters.analysisFallTimeConstant
+                    if fallTimeConstant > 0 {
+                        // Calculate time since end of last enriched block
+                        responseFactor = exp(-timeInBlock / fallTimeConstant)
+                    }
+                }
+            }
+            
+            // Store the response factor as the block pattern value
+            mriBlockPattern[i] = responseFactor
         }
     }
     
