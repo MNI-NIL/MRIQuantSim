@@ -205,6 +205,11 @@ struct ParametersTabView: View {
                     )
                 }
                 
+                CollapsibleSection(title: "Response Parameters", sectionId: "response_params") {
+                    parameterRow(title: "CO₂ Response Amplitude (mmHg)", value: $parameters.co2ResponseAmplitude)
+                    parameterRow(title: "MRI Response Amplitude (a.u.)", value: $parameters.mriResponseAmplitude)
+                }
+                
                 // Display options have been moved to a dedicated Display tab
             }
             .padding()

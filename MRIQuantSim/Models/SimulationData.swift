@@ -151,7 +151,6 @@ class SimulationData: ObservableObject {
     let normalAirMinCO2: Double = 0.0 // mmHg
     let normalAirMaxCO2: Double = 40.0 // mmHg
     let enrichedAirMinCO2: Double = 38.0 // mmHg (5% of 760mmHg)
-    let enrichedAirMaxCO2: Double = 45.0 // mmHg
     
     func generateSimulatedData(parameters: SimulationParameters, regenerateNoise: Bool = false) {
         // Reset all arrays to ensure clean state
@@ -265,6 +264,9 @@ class SimulationData: ObservableObject {
             
             // Base respiratory oscillation
             var respiratoryPhase = 2.0 * Double.pi * breathingRateHz * time
+            
+            // Compute enrichedAirMaxCO2 dynamically using the response amplitude parameter
+            let enrichedAirMaxCO2 = normalAirMaxCO2 + parameters.co2ResponseAmplitude
             
             // Determine CO2 range based on block type first
             let minCO2 = isEnrichedBlock ? enrichedAirMinCO2 : normalAirMinCO2

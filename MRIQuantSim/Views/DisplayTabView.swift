@@ -75,9 +75,16 @@ struct DisplayTabView: View {
                 // Scaling Options Section
                 CollapsibleSection(title: "Scaling Options", sectionId: "scaling_options") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Zoom to MRI Dynamic Range", isOn: $parameters.useMRIDynamicRange)
-                            .onChange(of: parameters.useMRIDynamicRange) { _, _ in onParameterChanged() }
-                            .padding(.bottom, 4)
+                        HStack(spacing: 8) {
+                            ToggleButton(
+                                title: "Zoom to MRI Dynamic Range",
+                                isOn: $parameters.useMRIDynamicRange,
+                                onChange: { onParameterChanged() }
+                            )
+                            
+                            Spacer()
+                        }
+                        .padding(.bottom, 4)
                         
                         Text("When enabled, the MRI graph's y-axis will automatically scale to fit all visible data.")
                             .font(.caption)
