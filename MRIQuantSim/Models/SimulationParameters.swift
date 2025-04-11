@@ -8,6 +8,13 @@
 import Foundation
 import SwiftData
 
+// Enum for different response shape types
+enum ResponseShapeType: String, Codable, CaseIterable {
+    case boxcar = "Boxcar"
+    case exponential = "Exponential"
+    // Future shape types can be added here
+}
+
 @Model
 final class SimulationParameters {
     // Signal Parameters
@@ -17,6 +24,23 @@ final class SimulationParameters {
     var mriBaselineSignal: Double = 1200.0 // arbitrary units
     var mriResponseAmplitude: Double = 25.0 // arbitrary units
     var co2ResponseAmplitude: Double = 5.0 // mmHg
+    
+    // Response Shape Parameters
+    // Store as a string to avoid issues with SwiftData and enums
+    var responseShapeTypeString: String = ResponseShapeType.boxcar.rawValue
+    var responseRiseTimeConstant: Double = 20.0 // seconds
+    var responseFallTimeConstant: Double = 20.0 // seconds
+    
+    // Computed property to convert between string and enum
+    @Transient
+    var responseShapeType: ResponseShapeType {
+        get {
+            ResponseShapeType(rawValue: responseShapeTypeString) ?? .boxcar
+        }
+        set {
+            responseShapeTypeString = newValue.rawValue
+        }
+    }
     
     // Noise Parameters
     var co2VarianceFrequency: Double = 0.05 // Hz
@@ -81,6 +105,11 @@ final class SimulationParameters {
             co2AmplitudeVariance: co2AmplitudeVariance,
             enableCO2Variance: enableCO2Variance,
             
+            // Response shape parameters
+            responseShapeTypeString: responseShapeTypeString,
+            responseRiseTimeConstant: responseRiseTimeConstant,
+            responseFallTimeConstant: responseFallTimeConstant,
+            
             // Model terms
             includeConstantTerm: includeConstantTerm,
             includeLinearTerm: includeLinearTerm,
@@ -109,6 +138,16 @@ struct ParameterState: Equatable {
     let co2AmplitudeVariance: Double
     let enableCO2Variance: Bool
     
+    // Response shape parameters
+    let responseShapeTypeString: String
+    let responseRiseTimeConstant: Double
+    let responseFallTimeConstant: Double
+    
+    // Computed property for convenience
+    var responseShapeType: ResponseShapeType {
+        ResponseShapeType(rawValue: responseShapeTypeString) ?? .boxcar
+    }
+    
     // Model terms
     let includeConstantTerm: Bool
     let includeLinearTerm: Bool
@@ -134,6 +173,11 @@ struct ParameterState: Equatable {
                co2AmplitudeVariance == previous.co2AmplitudeVariance &&
                enableCO2Variance == previous.enableCO2Variance &&
                
+               // All response shape parameters must be the same
+               responseShapeTypeString == previous.responseShapeTypeString &&
+               responseRiseTimeConstant == previous.responseRiseTimeConstant &&
+               responseFallTimeConstant == previous.responseFallTimeConstant &&
+               
                // All model terms must be the same
                includeConstantTerm == previous.includeConstantTerm &&
                includeLinearTerm == previous.includeLinearTerm &&
@@ -150,6 +194,9 @@ struct ParameterState: Equatable {
             co2VarianceAmplitude != previous.co2VarianceAmplitude ||
             co2AmplitudeVariance != previous.co2AmplitudeVariance ||
             enableCO2Variance != previous.enableCO2Variance;
+            
+        // Note: Response shape parameters are NOT included here because they affect both CO2 and MRI signals
+        // and should trigger a full simulation update when changed
             
         // And all other parameters remain the same
         return co2ParamsChanged &&
@@ -176,5 +223,39 @@ struct ParameterState: Equatable {
                includeLinearTerm != previous.includeLinearTerm ||
                includeQuadraticTerm != previous.includeQuadraticTerm ||
                includeCubicTerm != previous.includeCubicTerm
+    }
+    
+    // Helper method to check if only response shape parameters changed
+    func responseShapeParamsChangedFrom(previous: ParameterState) -> Bool {
+        // Check if any response shape parameter changed
+        let shapeParamsChanged = 
+            responseShapeTypeString != previous.responseShapeTypeString ||
+            responseRiseTimeConstant != previous.responseRiseTimeConstant ||
+            responseFallTimeConstant != previous.responseFallTimeConstant;
+            
+        // And all other parameters remain the same
+        return shapeParamsChanged &&
+               // All MRI parameters must be the same
+               mriNoiseAmplitude == previous.mriNoiseAmplitude &&
+               mriBaselineSignal == previous.mriBaselineSignal &&
+               mriResponseAmplitude == previous.mriResponseAmplitude &&
+               mriLinearDrift == previous.mriLinearDrift &&
+               mriQuadraticDrift == previous.mriQuadraticDrift &&
+               mriCubicDrift == previous.mriCubicDrift &&
+               enableMRINoise == previous.enableMRINoise &&
+               enableMRIDrift == previous.enableMRIDrift &&
+               
+               // All CO2 parameters must be the same
+               co2ResponseAmplitude == previous.co2ResponseAmplitude &&
+               co2VarianceFrequency == previous.co2VarianceFrequency &&
+               co2VarianceAmplitude == previous.co2VarianceAmplitude &&
+               co2AmplitudeVariance == previous.co2AmplitudeVariance &&
+               enableCO2Variance == previous.enableCO2Variance &&
+               
+               // All model terms must be the same
+               includeConstantTerm == previous.includeConstantTerm &&
+               includeLinearTerm == previous.includeLinearTerm &&
+               includeQuadraticTerm == previous.includeQuadraticTerm &&
+               includeCubicTerm == previous.includeCubicTerm
     }
 }

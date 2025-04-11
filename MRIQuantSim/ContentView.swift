@@ -54,15 +54,24 @@ class SimulationController: ObservableObject {
             // Check if only CO2 variance parameters changed
             let onlyCO2VarianceChanged = currentState.onlyCO2VarianceParamsChangedFrom(previous: previousState)
             
+            // Check if response shape parameters have changed
+            let responseShapeChanged = 
+                previousState.responseShapeTypeString != currentState.responseShapeTypeString ||
+                previousState.responseRiseTimeConstant != currentState.responseRiseTimeConstant ||
+                previousState.responseFallTimeConstant != currentState.responseFallTimeConstant
+            
             print("Parameter change detected:")
             print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
             print("  - CO₂ variance: \(previousState.enableCO2Variance) -> \(currentState.enableCO2Variance)")
             print("  - CO₂ variance frequency: \(previousState.co2VarianceFrequency) -> \(currentState.co2VarianceFrequency)")
             print("  - CO₂ frequency variance: \(previousState.co2VarianceAmplitude) -> \(currentState.co2VarianceAmplitude)")
             print("  - CO₂ amplitude variance: \(previousState.co2AmplitudeVariance) -> \(currentState.co2AmplitudeVariance)")
+            print("  - Response shape: \(previousState.responseShapeTypeString) -> \(currentState.responseShapeTypeString)")
+            print("  - Response time constants: \(previousState.responseRiseTimeConstant)/\(previousState.responseFallTimeConstant) -> \(currentState.responseRiseTimeConstant)/\(currentState.responseFallTimeConstant)")
             print("  - Model terms changed: \(modelTermsChanged)")
             print("  - Only MRI amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
             print("  - Only CO₂ variance changed: \(onlyCO2VarianceChanged)")
+            print("  - Response shape changed: \(responseShapeChanged)")
             
             if modelTermsChanged {
                 print("Model terms changed, updating analysis without regenerating signals")
@@ -93,6 +102,15 @@ class SimulationController: ObservableObject {
                 // Force a view refresh by incrementing the trigger
                 viewRefreshTrigger += 1
                 print("Incremented view refresh trigger to \(viewRefreshTrigger)")
+                
+                // Update previousState to current values
+                previousParamState = currentState
+                return
+            }
+            else if responseShapeChanged {
+                print("Response shape parameters changed, regenerating full simulation")
+                // Generate a full simulation update since response shape affects both CO2 and MRI
+                updateSimulation(regenerateNoise: false)
                 
                 // Update previousState to current values
                 previousParamState = currentState
