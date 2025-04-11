@@ -267,9 +267,9 @@ class SimulationData: ObservableObject {
             var respiratoryPhase = 2.0 * Double.pi * breathingRateHz * time
             
             // Add noise to respiratory frequency if enabled
-            if parameters.enableCO2Noise {
-                let frequencyNoise = sin(2.0 * Double.pi * parameters.co2NoiseFrequency * time) * parameters.co2NoiseAmplitude
-                respiratoryPhase += frequencyNoise
+            if parameters.enableCO2Variance {
+                let frequencyVariance = sin(2.0 * Double.pi * parameters.co2VarianceFrequency * time) * parameters.co2VarianceAmplitude
+                respiratoryPhase += frequencyVariance
             }
             
             let respiratoryWave = sin(respiratoryPhase)
@@ -377,6 +377,23 @@ class SimulationData: ObservableObject {
         
         // Run the detrending analysis with current parameters
         performDetrendingAnalysis(parameters: parameters)
+        
+        // Trigger UI update
+        objectWillChange.send()
+    }
+    
+    /// Public method to update only the CO2 signal when CO2 variance parameters change
+    func updateCO2SignalOnly(parameters: SimulationParameters) {
+        print("Regenerating CO2 signal with updated variance parameters")
+        
+        // Only regenerate the CO2 signal
+        generateCO2Signal(parameters: parameters)
+        
+        // Extract end-tidal CO2 based on the new signal
+        extractEndTidalCO2(parameters: parameters)
+        
+        // Update the CO2 block pattern
+        generateBlockPatterns(parameters: parameters)
         
         // Trigger UI update
         objectWillChange.send()

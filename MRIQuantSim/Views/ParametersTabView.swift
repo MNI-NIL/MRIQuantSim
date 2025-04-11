@@ -103,19 +103,19 @@ struct ParametersTabView: View {
                 }
                 
                 CollapsibleSection(title: "Noise Parameters", sectionId: "noise_params") {
-                    Toggle("Enable CO2 Noise", isOn: $parameters.enableCO2Noise)
-                        .onChange(of: parameters.enableCO2Noise) { _, _ in onParameterChanged() }
+                    Toggle("Enable CO2 Variance", isOn: $parameters.enableCO2Variance)
+                        .onChange(of: parameters.enableCO2Variance) { _, _ in onParameterChanged() }
                     
                     parameterRow(
-                        title: "CO2 Noise Frequency (Hz)", 
-                        value: $parameters.co2NoiseFrequency,
-                        disabled: !parameters.enableCO2Noise
+                        title: "CO2 Variance Frequency (Hz)",
+                        value: $parameters.co2VarianceFrequency,
+                        disabled: !parameters.enableCO2Variance
                     )
                     
                     parameterRow(
-                        title: "CO2 Noise Amplitude",
-                        value: $parameters.co2NoiseAmplitude,
-                        disabled: !parameters.enableCO2Noise
+                        title: "CO2 Variance Amplitude",
+                        value: $parameters.co2VarianceAmplitude,
+                        disabled: !parameters.enableCO2Variance
                     )
                     
                     Toggle("Enable MRI Noise", isOn: $parameters.enableMRINoise)

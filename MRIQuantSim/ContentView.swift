@@ -13,6 +13,7 @@ import Charts
 class SimulationController: ObservableObject {
     @Published var parameters = SimulationParameters()
     @Published var simulationData = SimulationData()
+    @Published var viewRefreshTrigger = 0 // Increment this to force view refreshes
     
     // Property to track initialization state
     private var isInitialized = false
@@ -50,10 +51,17 @@ class SimulationController: ObservableObject {
             // Check if only the MRI noise amplitude changed
             let onlyMRINoiseAmplitudeChanged = currentState.onlyNoiseAmplitudeChangedFrom(previous: previousState)
             
+            // Check if only CO2 variance parameters changed
+            let onlyCO2VarianceChanged = currentState.onlyCO2VarianceParamsChangedFrom(previous: previousState)
+            
             print("Parameter change detected:")
             print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
+            print("  - CO2 variance: \(previousState.enableCO2Variance) -> \(currentState.enableCO2Variance)")
+            print("  - CO2 variance frequency: \(previousState.co2VarianceFrequency) -> \(currentState.co2VarianceFrequency)")
+            print("  - CO2 variance amplitude: \(previousState.co2VarianceAmplitude) -> \(currentState.co2VarianceAmplitude)")
             print("  - Model terms changed: \(modelTermsChanged)")
-            print("  - Only amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
+            print("  - Only MRI amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
+            print("  - Only CO2 variance changed: \(onlyCO2VarianceChanged)")
             
             if modelTermsChanged {
                 print("Model terms changed, updating analysis without regenerating signals")
@@ -68,9 +76,22 @@ class SimulationController: ObservableObject {
                 return
             }
             else if onlyMRINoiseAmplitudeChanged {
-                print("Updating with same noise pattern, new amplitude: \(parameters.mriNoiseAmplitude)")
+                print("Updating with same MRI noise pattern, new amplitude: \(parameters.mriNoiseAmplitude)")
                 // Just update MRI signal with the same noise pattern but new amplitude
                 simulationData.updateMRISignalWithSameNoisePattern(parameters: parameters)
+                
+                // Update previousState to current values
+                previousParamState = currentState
+                return
+            }
+            else if onlyCO2VarianceChanged {
+                print("CO2 variance changed, regenerating CO2 signal only")
+                // Only regenerate the CO2 signal
+                simulationData.updateCO2SignalOnly(parameters: parameters)
+                
+                // Force a view refresh by incrementing the trigger
+                viewRefreshTrigger += 1
+                print("Incremented view refresh trigger to \(viewRefreshTrigger)")
                 
                 // Update previousState to current values
                 previousParamState = currentState
@@ -97,6 +118,8 @@ class SimulationController: ObservableObject {
         
         objectWillChange.send()
     }
+    
+    // No longer needed since we're using the trigger approach
 }
 
 struct ContentView: View {
@@ -121,6 +144,7 @@ struct ContentView: View {
                     yRange: 0...50
                 )
                 .padding(.top, 12)
+                .id("co2Graph-\(simulator.viewRefreshTrigger)") // Force redraw when trigger changes
                 
                 // MRI Graph
                 SignalGraphView(
@@ -130,6 +154,7 @@ struct ContentView: View {
                     dataSeries: getMRISeries(),
                     yRange: getMRIYRange()
                 )
+                .id("mriGraph-\(simulator.viewRefreshTrigger)") // Force redraw when trigger changes
             }
             .padding(.horizontal)
             .frame(minHeight: 300, idealHeight: 450, maxHeight: .infinity)
