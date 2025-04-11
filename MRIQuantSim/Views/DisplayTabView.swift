@@ -10,7 +10,6 @@ import SwiftUI
 struct DisplayTabView: View {
     @Binding var parameters: SimulationParameters
     var onParameterChanged: () -> Void
-    var onRegenerateNoise: () -> Void
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -86,31 +85,7 @@ struct DisplayTabView: View {
                     }
                 }
                 
-                // Noise Options Section
-                CollapsibleSection(title: "Noise Options", sectionId: "noise_options") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("MRI noise can be regenerated to simulate different noise realizations while maintaining the same statistical properties.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.bottom, 4)
-                        
-                        Button(action: {
-                            onRegenerateNoise()
-                        }) {
-                            HStack {
-                                Image(systemName: "waveform.path")
-                                Text("Regenerate MRI Noise")
-                            }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 12)
-                            .background(Color.accentColor)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .disabled(!parameters.enableMRINoise)
-                    }
-                }
+                // Note: Noise regeneration button has been moved to the Signal tab
             }
             .padding()
         }
@@ -122,8 +97,7 @@ struct DisplayTabView_LightPreview: PreviewProvider {
     static var previews: some View {
         DisplayTabView(
             parameters: .constant(SimulationParameters()),
-            onParameterChanged: {},
-            onRegenerateNoise: {}
+            onParameterChanged: {}
         )
         .preferredColorScheme(.light)
     }
@@ -134,8 +108,7 @@ struct DisplayTabView_DarkPreview: PreviewProvider {
     static var previews: some View {
         DisplayTabView(
             parameters: .constant(SimulationParameters()),
-            onParameterChanged: {},
-            onRegenerateNoise: {}
+            onParameterChanged: {}
         )
         .preferredColorScheme(.dark)
     }

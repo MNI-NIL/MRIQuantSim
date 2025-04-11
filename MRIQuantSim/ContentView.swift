@@ -123,7 +123,8 @@ struct ContentView: View {
             TabView(selection: $selectedTab) {
                 ParametersTabView(
                     parameters: $simulator.parameters,
-                    onParameterChanged: simulator.parameterChanged
+                    onParameterChanged: simulator.parameterChanged,
+                    onRegenerateNoise: simulator.regenerateMRINoise
                 )
                 .tabItem {
                     Label("Signal", systemImage: "waveform")
@@ -143,8 +144,7 @@ struct ContentView: View {
                 
                 DisplayTabView(
                     parameters: $simulator.parameters,
-                    onParameterChanged: simulator.parameterChanged,
-                    onRegenerateNoise: simulator.regenerateMRINoise
+                    onParameterChanged: simulator.parameterChanged
                 )
                 .tabItem {
                     Label("Display", systemImage: "display")

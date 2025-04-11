@@ -88,6 +88,7 @@ struct CollapsibleSection<Content: View>: View {
 struct ParametersTabView: View {
     @Binding var parameters: SimulationParameters
     var onParameterChanged: () -> Void
+    var onRegenerateNoise: (() -> Void)? = nil  // Optional callback for noise regeneration
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -125,6 +126,33 @@ struct ParametersTabView: View {
                         value: $parameters.mriNoiseAmplitude,
                         disabled: !parameters.enableMRINoise
                     )
+                    
+                    // Add regenerate noise button if the callback is provided
+                    if let regenerateCallback = onRegenerateNoise {
+                        Divider()
+                            .padding(.vertical, 8)
+                        
+                        Text("Regenerate noise with new random values while keeping the same statistical properties.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.bottom, 8)
+                        
+                        Button(action: {
+                            regenerateCallback()
+                        }) {
+                            HStack {
+                                Image(systemName: "waveform.path")
+                                Text("Regenerate MRI Noise")
+                            }
+                            .padding(.vertical, 6)
+                            .padding(.horizontal, 12)
+                            .background(Color.accentColor)
+                            .foregroundColor(.white)
+                            .cornerRadius(8)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!parameters.enableMRINoise)
+                    }
                 }
                 
                 CollapsibleSection(title: "Drift Parameters", sectionId: "drift_params") {
@@ -215,7 +243,8 @@ struct ParametersTabView_LightPreview: PreviewProvider {
     static var previews: some View {
         ParametersTabView(
             parameters: .constant(SimulationParameters()),
-            onParameterChanged: {}
+            onParameterChanged: {},
+            onRegenerateNoise: {}
         )
         .preferredColorScheme(.light)
     }
@@ -226,7 +255,8 @@ struct ParametersTabView_DarkPreview: PreviewProvider {
     static var previews: some View {
         ParametersTabView(
             parameters: .constant(SimulationParameters()),
-            onParameterChanged: {}
+            onParameterChanged: {},
+            onRegenerateNoise: {}
         )
         .preferredColorScheme(.dark)
     }
