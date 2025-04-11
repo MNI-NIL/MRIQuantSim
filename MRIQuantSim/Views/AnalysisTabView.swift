@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+// ToggleButton is imported automatically since it's in the same module
 
 struct AnalysisTabView: View {
     @Binding var parameters: SimulationParameters
@@ -36,11 +37,38 @@ struct AnalysisTabView: View {
     private var detrendingOptionsSection: some View {
         // Get the shared CollapsibleSection component from ParametersTabView
         CollapsibleSection(title: "Detrending Model Components", sectionId: "detrending_options") {
-            VStack(alignment: .leading, spacing: 8) {
-                modelToggle(title: "Constant Term", isOn: $parameters.includeConstantTerm)
-                modelToggle(title: "Linear Term", isOn: $parameters.includeLinearTerm)
-                modelToggle(title: "Quadratic Term", isOn: $parameters.includeQuadraticTerm)
-                modelToggle(title: "Cubic Term", isOn: $parameters.includeCubicTerm)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Include in model:")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                
+                HStack(spacing: 8) {
+                    ToggleButton(
+                        title: "Constant",
+                        isOn: $parameters.includeConstantTerm,
+                        onChange: { onParameterChanged() }
+                    )
+                    
+                    ToggleButton(
+                        title: "Linear",
+                        isOn: $parameters.includeLinearTerm,
+                        onChange: { onParameterChanged() }
+                    )
+                    
+                    ToggleButton(
+                        title: "Quadratic",
+                        isOn: $parameters.includeQuadraticTerm,
+                        onChange: { onParameterChanged() }
+                    )
+                    
+                    ToggleButton(
+                        title: "Cubic",
+                        isOn: $parameters.includeCubicTerm,
+                        onChange: { onParameterChanged() }
+                    )
+                    
+                    Spacer()
+                }
             }
         }
     }
@@ -68,10 +96,7 @@ struct AnalysisTabView: View {
         }
     }
     
-    private func modelToggle(title: String, isOn: Binding<Bool>) -> some View {
-        Toggle(title, isOn: isOn)
-            .onChange(of: isOn.wrappedValue) { _, _ in onParameterChanged() }
-    }
+    // Using ToggleButton instead of individual Toggle components
     
     private func betaParamName(index: Int) -> String {
         let baseNames = ["Stimulus Response", "Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
