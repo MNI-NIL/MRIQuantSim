@@ -103,6 +103,7 @@ struct ContentView: View {
                     dataSeries: getCO2Series(),
                     yRange: 0...50
                 )
+                .padding(.top, 64)
                 
                 // MRI Graph
                 SignalGraphView(
