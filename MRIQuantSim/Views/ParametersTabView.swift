@@ -206,8 +206,38 @@ struct ParametersTabView: View {
                 }
                 
                 CollapsibleSection(title: "Response Parameters", sectionId: "response_params") {
+                    // Response amplitudes
                     parameterRow(title: "CO₂ Response Amplitude (mmHg)", value: $parameters.co2ResponseAmplitude)
                     parameterRow(title: "MRI Response Amplitude (a.u.)", value: $parameters.mriResponseAmplitude)
+                    
+                    Divider().padding(.vertical, 8)
+                    
+                    // Response shape picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Response Shape")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Picker("", selection: $parameters.responseShapeType) {
+                            ForEach(ResponseShapeType.allCases, id: \.self) { shapeType in
+                                Text(shapeType.rawValue).tag(shapeType)
+                            }
+                        }
+                        .pickerStyle(SegmentedPickerStyle())
+                        .onChange(of: parameters.responseShapeType) { _, _ in onParameterChanged() }
+                        .padding(.bottom, 4)
+                    }
+                    
+                    // Only show time constants if exponential is selected
+                    if parameters.responseShapeType == .exponential {
+                        parameterRow(title: "Rise Time Constant (s)", value: $parameters.responseRiseTimeConstant)
+                        parameterRow(title: "Fall Time Constant (s)", value: $parameters.responseFallTimeConstant)
+                        
+                        Text("Time constants control the speed of transition at the beginning (rise) and end (fall) of each response block.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .padding(.top, 4)
+                    }
                 }
                 
                 // Display options have been moved to a dedicated Display tab

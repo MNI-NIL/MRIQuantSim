@@ -54,15 +54,31 @@ class SimulationController: ObservableObject {
             // Check if only CO2 variance parameters changed
             let onlyCO2VarianceChanged = currentState.onlyCO2VarianceParamsChangedFrom(previous: previousState)
             
+            // Check if response shape parameters have changed
+            let responseShapeChanged = 
+                previousState.responseShapeTypeString != currentState.responseShapeTypeString ||
+                previousState.responseRiseTimeConstant != currentState.responseRiseTimeConstant ||
+                previousState.responseFallTimeConstant != currentState.responseFallTimeConstant
+                
+            // Check if analysis model parameters have changed
+            let analysisModelChanged =
+                previousState.analysisModelTypeString != currentState.analysisModelTypeString ||
+                previousState.analysisRiseTimeConstant != currentState.analysisRiseTimeConstant ||
+                previousState.analysisFallTimeConstant != currentState.analysisFallTimeConstant
+            
             print("Parameter change detected:")
             print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
             print("  - CO₂ variance: \(previousState.enableCO2Variance) -> \(currentState.enableCO2Variance)")
             print("  - CO₂ variance frequency: \(previousState.co2VarianceFrequency) -> \(currentState.co2VarianceFrequency)")
             print("  - CO₂ frequency variance: \(previousState.co2VarianceAmplitude) -> \(currentState.co2VarianceAmplitude)")
             print("  - CO₂ amplitude variance: \(previousState.co2AmplitudeVariance) -> \(currentState.co2AmplitudeVariance)")
+            print("  - Response shape: \(previousState.responseShapeTypeString) -> \(currentState.responseShapeTypeString)")
+            print("  - Response time constants: \(previousState.responseRiseTimeConstant)/\(previousState.responseFallTimeConstant) -> \(currentState.responseRiseTimeConstant)/\(currentState.responseFallTimeConstant)")
             print("  - Model terms changed: \(modelTermsChanged)")
             print("  - Only MRI amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
             print("  - Only CO₂ variance changed: \(onlyCO2VarianceChanged)")
+            print("  - Response shape changed: \(responseShapeChanged)")
+            print("  - Analysis model changed: \(analysisModelChanged)")
             
             if modelTermsChanged {
                 print("Model terms changed, updating analysis without regenerating signals")
@@ -98,6 +114,30 @@ class SimulationController: ObservableObject {
                 previousParamState = currentState
                 return
             }
+            else if responseShapeChanged {
+                print("Response shape parameters changed, regenerating full simulation")
+                // Generate a full simulation update since response shape affects both CO2 and MRI
+                updateSimulation(regenerateNoise: false)
+                
+                // Update previousState to current values
+                previousParamState = currentState
+                return
+            }
+            else if analysisModelChanged {
+                print("Analysis model parameters changed, regenerating model analysis only")
+                // Only need to regenerate block patterns and rerun the model analysis
+                // This doesn't require regenerating the raw signal data
+                simulationData.generateBlockPatterns(parameters: parameters)
+                simulationData.performModelAnalysis(parameters: parameters)
+                
+                // Force a view refresh by incrementing the trigger
+                viewRefreshTrigger += 1
+                print("Incremented view refresh trigger to \(viewRefreshTrigger) due to analysis model change")
+                
+                // Update previousState to current values
+                previousParamState = currentState
+                return
+            }
         }
         
         // For any other parameter changes, do a full update
@@ -117,6 +157,14 @@ class SimulationController: ObservableObject {
         // Update parameter state after regeneration
         previousParamState = parameters.getParameterState()
         
+        // Force UI refresh
+        viewRefreshTrigger += 1
+        objectWillChange.send()
+    }
+    
+    // Method to explicitly force view refresh without parameter change
+    func forceViewRefresh() {
+        viewRefreshTrigger += 1
         objectWillChange.send()
     }
     
@@ -177,7 +225,8 @@ struct ContentView: View {
                     parameters: $simulator.parameters,
                     simulationData: simulator.simulationData,
                     onParameterChanged: simulator.parameterChanged,
-                    onRegenerateNoise: simulator.regenerateMRINoise
+                    onRegenerateNoise: simulator.regenerateMRINoise,
+                    onForceRefresh: simulator.forceViewRefresh
                 )
                 .tabItem {
                     Label("Analysis", systemImage: "chart.bar")
