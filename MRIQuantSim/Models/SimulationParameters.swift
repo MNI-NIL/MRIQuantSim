@@ -38,7 +38,7 @@ final class SimulationParameters {
     var showMRIRaw: Bool = true
     var showMRIDetrended: Bool = false
     var showModelOverlay: Bool = false
-    var useDynamicMRIRange: Bool = true
+    var useMRIDynamicRange: Bool = true
     var enableCO2Noise: Bool = true
     var enableMRINoise: Bool = true
     var enableCO2Drift: Bool = true

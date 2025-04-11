@@ -104,8 +104,8 @@ struct AnalysisTabView: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                     
-                    Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
-                        .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                    Toggle("Use MRI Dynamic Range", isOn: $parameters.useMRIDynamicRange)
+                        .onChange(of: parameters.useMRIDynamicRange) { _, _ in onParameterChanged() }
                 }
                 .padding(.top, 4)
                 

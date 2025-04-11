@@ -187,8 +187,8 @@ struct ParametersTabView: View {
                     Toggle("Show Detrended MRI Signal", isOn: $parameters.showMRIDetrended)
                         .onChange(of: parameters.showMRIDetrended) { _, _ in onParameterChanged() }
                     
-                    Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
-                        .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
+                    Toggle("Use MRI Dynamic Range", isOn: $parameters.useMRIDynamicRange)
+                        .onChange(of: parameters.useMRIDynamicRange) { _, _ in onParameterChanged() }
                 }
             }
             .padding()

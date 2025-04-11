@@ -179,7 +179,7 @@ struct ContentView: View {
         let defaultRange = (baseline - 50)...(baseline + 50)
         
         // If not using dynamic range, return fixed range
-        if !simulator.parameters.useDynamicMRIRange {
+        if !simulator.parameters.useMRIDynamicRange {
             return defaultRange
         }
         
