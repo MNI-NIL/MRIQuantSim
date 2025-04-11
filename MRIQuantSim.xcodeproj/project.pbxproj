@@ -48,6 +48,11 @@
 			path = MRIQuantSimUITests;
 			sourceTree = "<group>";
 		};
+		8AC14AF72DA9A39E00C5E286 /* Releases */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Releases;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +86,7 @@
 				8A8361052DA96AF000991175 /* CLAUDE.md */,
 				8A8361042DA96AE200991175 /* LICENSE */,
 				8A8361032DA96AD600991175 /* README.md */,
+				8AC14AF72DA9A39E00C5E286 /* Releases */,
 				8A7556542DA80057002A7962 /* MRIQuantSim */,
 				8A7556652DA80057002A7962 /* MRIQuantSimTests */,
 				8A75566F2DA80057002A7962 /* MRIQuantSimUITests */,
