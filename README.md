@@ -1,6 +1,6 @@
 # MRIQuantSim
 
-<img src="Media/MRIQuantSimIcon.png" alt="MRIQuantSim icon" width="64"/>
+<img src="Media/MRIQuantSimIcon.png" alt="MRIQuantSim icon" width="128"/>
 
 MRIQuantSim is an educational and research tool for simulating and visualizing quantitative MRI signal responses to CO₂ breathing challenges. The application provides an interactive environment to generate synthetic MRI and CO₂ time series data with configurable parameters.
 
