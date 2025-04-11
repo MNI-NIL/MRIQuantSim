@@ -30,7 +30,7 @@ The application is organized into several key components:
   - *Model Results*: View statistical results and percent change metrics
   
 - **Display Tab**: Customize visualization options
-  - *Waveform Display*: Toggle visibility of different signal components
+  - *Waveform Display*: Toggle visibility of different signal components (raw signal, model fit, detrended signal, residual error)
   - *Scaling Options*: Control y-axis scaling for optimal visualization
 
 ## Requirements
@@ -59,6 +59,15 @@ xcodebuild test -project MRIQuantSim.xcodeproj -scheme MRIQuantSim
 ```
 
 ## Recent Enhancements
+
+### Residual Error Visualization
+
+The application now provides the ability to visualize residual error points (raw data minus model fit):
+
+- Toggle visibility of residual error points through the Display tab
+- Quickly identify regions where the model does not fit the data well
+- Assess the quality of fit visually alongside other signal components
+- Helpful for educational purposes in understanding model performance
 
 ### Response Shape Modeling
 
