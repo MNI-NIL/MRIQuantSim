@@ -20,7 +20,7 @@ struct DisplayTabView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         // CO2 Signal group
                         VStack(alignment: .leading, spacing: 6) {
-                            Text("CO2 Signal")
+                            Text("CO₂ Signal")
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             

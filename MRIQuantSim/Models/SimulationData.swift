@@ -72,7 +72,7 @@ class SimulationData: ObservableObject {
         if !co2TimePoints.isEmpty && !co2RawSignal.isEmpty {
             let count = min(co2TimePoints.count, co2RawSignal.count)
             seriesData.append(TimeSeriesData(
-                title: "Raw CO2",
+                title: "Raw CO₂",
                 xValues: Array(co2TimePoints.prefix(count)),
                 yValues: Array(co2RawSignal.prefix(count)),
                 color: .blue,
@@ -88,7 +88,7 @@ class SimulationData: ObservableObject {
             
             // Single time series with both points and connecting line
             seriesData.append(TimeSeriesData(
-                title: "End-tidal CO2",
+                title: "End-tidal CO₂",
                 xValues: xValues,
                 yValues: yValues,
                 color: .red,

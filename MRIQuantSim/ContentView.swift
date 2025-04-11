@@ -56,13 +56,13 @@ class SimulationController: ObservableObject {
             
             print("Parameter change detected:")
             print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
-            print("  - CO2 variance: \(previousState.enableCO2Variance) -> \(currentState.enableCO2Variance)")
-            print("  - CO2 variance frequency: \(previousState.co2VarianceFrequency) -> \(currentState.co2VarianceFrequency)")
-            print("  - CO2 frequency variance: \(previousState.co2VarianceAmplitude) -> \(currentState.co2VarianceAmplitude)")
-            print("  - CO2 amplitude variance: \(previousState.co2AmplitudeVariance) -> \(currentState.co2AmplitudeVariance)")
+            print("  - CO₂ variance: \(previousState.enableCO2Variance) -> \(currentState.enableCO2Variance)")
+            print("  - CO₂ variance frequency: \(previousState.co2VarianceFrequency) -> \(currentState.co2VarianceFrequency)")
+            print("  - CO₂ frequency variance: \(previousState.co2VarianceAmplitude) -> \(currentState.co2VarianceAmplitude)")
+            print("  - CO₂ amplitude variance: \(previousState.co2AmplitudeVariance) -> \(currentState.co2AmplitudeVariance)")
             print("  - Model terms changed: \(modelTermsChanged)")
             print("  - Only MRI amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
-            print("  - Only CO2 variance changed: \(onlyCO2VarianceChanged)")
+            print("  - Only CO₂ variance changed: \(onlyCO2VarianceChanged)")
             
             if modelTermsChanged {
                 print("Model terms changed, updating analysis without regenerating signals")
@@ -86,7 +86,7 @@ class SimulationController: ObservableObject {
                 return
             }
             else if onlyCO2VarianceChanged {
-                print("CO2 variance changed, regenerating CO2 signal only")
+                print("CO₂ variance changed, regenerating CO₂ signal only")
                 // Only regenerate the CO2 signal
                 simulationData.updateCO2SignalOnly(parameters: parameters)
                 
@@ -138,9 +138,9 @@ struct ContentView: View {
             VStack(spacing: 8) {
                 // CO2 Graph
                 SignalGraphView(
-                    title: "CO2 Partial Pressure",
+                    title: "CO₂ Partial Pressure",
                     xLabel: "Time (s)",
-                    yLabel: "pCO2 (mmHg)",
+                    yLabel: "pCO₂ (mmHg)",
                     dataSeries: getCO2Series(),
                     yRange: 0...50
                 )

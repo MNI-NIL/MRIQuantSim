@@ -95,7 +95,7 @@ struct ParametersTabView: View {
         ScrollView {
             VStack(spacing: 16) {
                 CollapsibleSection(title: "Signal Parameters", sectionId: "signal_params") {
-                    parameterRow(title: "CO2 Sampling Rate (Hz)", value: $parameters.co2SamplingRate)
+                    parameterRow(title: "CO₂ Sampling Rate (Hz)", value: $parameters.co2SamplingRate)
                     parameterRow(title: "Breathing Rate (breaths/min)", value: $parameters.breathingRate)
                     parameterRow(title: "MRI Sampling Interval (s)", value: $parameters.mriSamplingInterval)
                     parameterRow(title: "MRI Baseline Signal (a.u.)", value: $parameters.mriBaselineSignal)
@@ -103,23 +103,23 @@ struct ParametersTabView: View {
                 }
                 
                 CollapsibleSection(title: "Noise Parameters", sectionId: "noise_params") {
-                    Toggle("Enable CO2 Variance", isOn: $parameters.enableCO2Variance)
+                    Toggle("Enable CO₂ Variance", isOn: $parameters.enableCO2Variance)
                         .onChange(of: parameters.enableCO2Variance) { _, _ in onParameterChanged() }
                     
                     parameterRow(
-                        title: "CO2 Variance Frequency (Hz)",
+                        title: "CO₂ Variance Frequency (Hz)",
                         value: $parameters.co2VarianceFrequency,
                         disabled: !parameters.enableCO2Variance
                     )
                     
                     parameterRow(
-                        title: "CO2 Frequency Variance",
+                        title: "CO₂ Frequency Variance",
                         value: $parameters.co2VarianceAmplitude,
                         disabled: !parameters.enableCO2Variance
                     )
                     
                     parameterRow(
-                        title: "CO2 Amplitude Variance (mmHg)",
+                        title: "CO₂ Amplitude Variance (mmHg)",
                         value: $parameters.co2AmplitudeVariance,
                         disabled: !parameters.enableCO2Variance
                     )
@@ -162,23 +162,23 @@ struct ParametersTabView: View {
                 }
                 
                 CollapsibleSection(title: "Drift Parameters", sectionId: "drift_params") {
-                    Toggle("Enable CO2 Drift", isOn: $parameters.enableCO2Drift)
+                    Toggle("Enable CO₂ Drift", isOn: $parameters.enableCO2Drift)
                         .onChange(of: parameters.enableCO2Drift) { _, _ in onParameterChanged() }
                     
                     parameterRow(
-                        title: "CO2 Linear Drift (mmHg)",
+                        title: "CO₂ Linear Drift (mmHg)",
                         value: $parameters.co2LinearDrift,
                         disabled: !parameters.enableCO2Drift
                     )
                     
                     parameterRow(
-                        title: "CO2 Quadratic Drift (mmHg)",
+                        title: "CO₂ Quadratic Drift (mmHg)",
                         value: $parameters.co2QuadraticDrift,
                         disabled: !parameters.enableCO2Drift
                     )
                     
                     parameterRow(
-                        title: "CO2 Cubic Drift (mmHg)",
+                        title: "CO₂ Cubic Drift (mmHg)",
                         value: $parameters.co2CubicDrift,
                         disabled: !parameters.enableCO2Drift
                     )
