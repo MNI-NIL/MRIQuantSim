@@ -119,7 +119,7 @@ struct ContentView: View {
             .frame(minHeight: 300, idealHeight: 450, maxHeight: .infinity)
             .background(Color(NSColor.textBackgroundColor))
             
-            // LOWER SECTION: Parameters and Analysis Tabs
+            // LOWER SECTION: Parameters, Display and Analysis Tabs
             TabView(selection: $selectedTab) {
                 ParametersTabView(
                     parameters: $simulator.parameters,
@@ -140,6 +140,16 @@ struct ContentView: View {
                     Label("Analysis", systemImage: "chart.bar")
                 }
                 .tag(1)
+                
+                DisplayTabView(
+                    parameters: $simulator.parameters,
+                    onParameterChanged: simulator.parameterChanged,
+                    onRegenerateNoise: simulator.regenerateMRINoise
+                )
+                .tabItem {
+                    Label("Display", systemImage: "display")
+                }
+                .tag(2)
             }
             .frame(minHeight: 250, idealHeight: 300, maxHeight: .infinity)
             .background(Color(NSColor.controlBackgroundColor))

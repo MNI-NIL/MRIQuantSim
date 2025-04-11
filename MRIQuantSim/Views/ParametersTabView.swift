@@ -171,25 +171,7 @@ struct ParametersTabView: View {
                     )
                 }
                 
-                CollapsibleSection(title: "Display Options", sectionId: "display_options") {
-                    Toggle("Show Raw CO2 Signal", isOn: $parameters.showCO2Raw)
-                        .onChange(of: parameters.showCO2Raw) { _, _ in onParameterChanged() }
-                    
-                    Toggle("Show End-Tidal CO2 Points", isOn: $parameters.showCO2EndTidal)
-                        .onChange(of: parameters.showCO2EndTidal) { _, _ in onParameterChanged() }
-                    
-                    Toggle("Show Raw MRI Signal", isOn: $parameters.showMRIRaw)
-                        .onChange(of: parameters.showMRIRaw) { _, _ in onParameterChanged() }
-                    
-                    Toggle("Show Model Overlay", isOn: $parameters.showModelOverlay)
-                        .onChange(of: parameters.showModelOverlay) { _, _ in onParameterChanged() }
-                    
-                    Toggle("Show Detrended MRI Signal", isOn: $parameters.showMRIDetrended)
-                        .onChange(of: parameters.showMRIDetrended) { _, _ in onParameterChanged() }
-                    
-                    Toggle("Use MRI Dynamic Range", isOn: $parameters.useMRIDynamicRange)
-                        .onChange(of: parameters.useMRIDynamicRange) { _, _ in onParameterChanged() }
-                }
+                // Display options have been moved to a dedicated Display tab
             }
             .padding()
         }
