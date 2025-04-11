@@ -118,18 +118,6 @@ class SimulationData: ObservableObject {
             ))
         }
         
-        // Detrended MRI signal
-        if !mriTimePoints.isEmpty && !mriDetrendedSignal.isEmpty {
-            let count = min(mriTimePoints.count, mriDetrendedSignal.count)
-            seriesData.append(TimeSeriesData(
-                title: "Detrended MRI Signal",
-                xValues: Array(mriTimePoints.prefix(count)),
-                yValues: Array(mriDetrendedSignal.prefix(count)),
-                color: .green,
-                isVisible: parameters.showMRIDetrended
-            ))
-        }
-        
         // Model-fitted MRI signal
         if !mriTimePoints.isEmpty && !mriModeledSignal.isEmpty {
             let count = min(mriTimePoints.count, mriModeledSignal.count)
@@ -139,6 +127,18 @@ class SimulationData: ObservableObject {
                 yValues: Array(mriModeledSignal.prefix(count)),
                 color: .orange,
                 isVisible: parameters.showModelOverlay
+            ))
+        }
+        
+        // Detrended MRI signal
+        if !mriTimePoints.isEmpty && !mriDetrendedSignal.isEmpty {
+            let count = min(mriTimePoints.count, mriDetrendedSignal.count)
+            seriesData.append(TimeSeriesData(
+                title: "Detrended MRI Signal",
+                xValues: Array(mriTimePoints.prefix(count)),
+                yValues: Array(mriDetrendedSignal.prefix(count)),
+                color: .green,
+                isVisible: parameters.showMRIDetrended
             ))
         }
         
@@ -173,7 +173,7 @@ class SimulationData: ObservableObject {
         extractEndTidalCO2(parameters: parameters)
         generateBlockPatterns(parameters: parameters)
         
-        if parameters.showModelOverlay {
+        if parameters.showModelOverlay || parameters.showMRIDetrended {
             performDetrendingAnalysis(parameters: parameters)
         }
         
@@ -231,7 +231,7 @@ class SimulationData: ObservableObject {
             
             // Re-run downstream analysis, which will recalculate both
             // the detrended signal and the modeled signal if needed
-            if parameters.showModelOverlay {
+            if parameters.showModelOverlay || parameters.showMRIDetrended {
                 performDetrendingAnalysis(parameters: parameters)
             }
             // Even if not showing model overlay, we need to generate block patterns
@@ -389,7 +389,7 @@ class SimulationData: ObservableObject {
         extractEndTidalCO2(parameters: parameters)
         generateBlockPatterns(parameters: parameters)
         
-        if parameters.showModelOverlay {
+        if parameters.showModelOverlay || parameters.showMRIDetrended {
             performDetrendingAnalysis(parameters: parameters)
         }
         

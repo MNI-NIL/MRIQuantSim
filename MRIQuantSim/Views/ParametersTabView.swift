@@ -181,11 +181,11 @@ struct ParametersTabView: View {
                     Toggle("Show Raw MRI Signal", isOn: $parameters.showMRIRaw)
                         .onChange(of: parameters.showMRIRaw) { _, _ in onParameterChanged() }
                     
-                    Toggle("Show Detrended MRI Signal", isOn: $parameters.showMRIDetrended)
-                        .onChange(of: parameters.showMRIDetrended) { _, _ in onParameterChanged() }
-                    
                     Toggle("Show Model Overlay", isOn: $parameters.showModelOverlay)
                         .onChange(of: parameters.showModelOverlay) { _, _ in onParameterChanged() }
+                    
+                    Toggle("Show Detrended MRI Signal", isOn: $parameters.showMRIDetrended)
+                        .onChange(of: parameters.showMRIDetrended) { _, _ in onParameterChanged() }
                     
                     Toggle("Use Dynamic MRI Range", isOn: $parameters.useDynamicMRIRange)
                         .onChange(of: parameters.useDynamicMRIRange) { _, _ in onParameterChanged() }
