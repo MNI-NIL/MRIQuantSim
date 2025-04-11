@@ -22,14 +22,14 @@ final class SimulationParameters {
     var breathingRate: Double = 15.0 // breaths per minute
     var mriSamplingInterval: Double = 2.0 // seconds
     var mriBaselineSignal: Double = 1200.0 // arbitrary units
-    var mriResponseAmplitude: Double = 25.0 // arbitrary units
-    var co2ResponseAmplitude: Double = 5.0 // mmHg
+    var mriResponseAmplitude: Double = 100.0 // arbitrary units
+    var co2ResponseAmplitude: Double = 10.0 // mmHg
     
     // Response Shape Parameters for Signal Simulation
     // Store as a string to avoid issues with SwiftData and enums
-    var responseShapeTypeString: String = ResponseShapeType.boxcar.rawValue
-    var responseRiseTimeConstant: Double = 20.0 // seconds
-    var responseFallTimeConstant: Double = 20.0 // seconds
+    var responseShapeTypeString: String = ResponseShapeType.exponential.rawValue
+    var responseRiseTimeConstant: Double = 10.0 // seconds
+    var responseFallTimeConstant: Double = 5.0 // seconds
     
     // Computed property to convert between string and enum
     @Transient
@@ -43,9 +43,9 @@ final class SimulationParameters {
     }
     
     // Analysis Model Parameters (for GLM analysis - potentially different from simulation)
-    var analysisModelTypeString: String = ResponseShapeType.boxcar.rawValue
-    var analysisRiseTimeConstant: Double = 20.0 // seconds
-    var analysisFallTimeConstant: Double = 20.0 // seconds
+    var analysisModelTypeString: String = ResponseShapeType.exponential.rawValue
+    var analysisRiseTimeConstant: Double = 10.0 // seconds
+    var analysisFallTimeConstant: Double = 5.0 // seconds
     
     // Computed property for analysis model type
     @Transient
@@ -75,14 +75,14 @@ final class SimulationParameters {
     
     // Noise Parameters
     var co2VarianceFrequency: Double = 0.05 // Hz
-    var co2VarianceAmplitude: Double = 0.1 // dimensionless multiplier for frequency modulation
-    var co2AmplitudeVariance: Double = 1.0 // mmHg - amplitude modulation
+    var co2VarianceAmplitude: Double = 1.5 // dimensionless multiplier for frequency modulation
+    var co2AmplitudeVariance: Double = 0.5 // mmHg - amplitude modulation
     var mriNoiseAmplitude: Double = 5.0 // arbitrary units
     
     // Drift Parameters - CO2
-    var co2LinearDrift: Double = 1.0 // mmHg
-    var co2QuadraticDrift: Double = 1.5 // mmHg
-    var co2CubicDrift: Double = 2.5 // mmHg
+    var co2LinearDrift: Double = 5.0 // mmHg
+    var co2QuadraticDrift: Double = 5.5 // mmHg
+    var co2CubicDrift: Double = 10.0 // mmHg
     
     // Drift Parameters - MRI
     var mriLinearDrift: Double = 3.0 // au
@@ -94,7 +94,7 @@ final class SimulationParameters {
     var showCO2EndTidal: Bool = true
     var showMRIRaw: Bool = true
     var showMRIDetrended: Bool = false
-    var showModelOverlay: Bool = false
+    var showModelOverlay: Bool = true
     var useMRIDynamicRange: Bool = true
     var enableCO2Variance: Bool = true
     var enableMRINoise: Bool = true
