@@ -27,9 +27,10 @@
 		8A7556522DA80057002A7962 /* MRIQuantSim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MRIQuantSim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A7556622DA80057002A7962 /* MRIQuantSimTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MRIQuantSimTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		8A75566C2DA80057002A7962 /* MRIQuantSimUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = MRIQuantSimUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		8A8361032DA96AD600991175 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
-		8A8361042DA96AE200991175 /* LICENSE */ = {isa = PBXFileReference; lastKnownFileType = text; path = LICENSE; sourceTree = "<group>"; };
-		8A8361052DA96AF000991175 /* CLAUDE.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		8A8361032DA96AD600991175 /* README.md */ = {isa = PBXFileReference; explicitFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		8A8361042DA96AE200991175 /* LICENSE */ = {isa = PBXFileReference; explicitFileType = net.daringfireball.markdown; path = LICENSE; sourceTree = "<group>"; };
+		8A8361052DA96AF000991175 /* CLAUDE.md */ = {isa = PBXFileReference; explicitFileType = net.daringfireball.markdown; path = CLAUDE.md; sourceTree = "<group>"; };
+		8AD68AEC2DA9D076004D6629 /* PRIVACY.md */ = {isa = PBXFileReference; explicitFileType = net.daringfireball.markdown; path = PRIVACY.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -88,6 +89,7 @@
 		8A7556492DA80057002A7962 = {
 			isa = PBXGroup;
 			children = (
+				8AD68AEC2DA9D076004D6629 /* PRIVACY.md */,
 				8A8361052DA96AF000991175 /* CLAUDE.md */,
 				8A8361042DA96AE200991175 /* LICENSE */,
 				8A8361032DA96AD600991175 /* README.md */,
@@ -424,6 +426,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -453,6 +456,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -607,6 +611,7 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.education";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
