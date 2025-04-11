@@ -173,15 +173,9 @@ class SimulationData: ObservableObject {
         extractEndTidalCO2(parameters: parameters)
         generateBlockPatterns(parameters: parameters)
         
-        if parameters.showModelOverlay || parameters.showMRIDetrended {
-            performDetrendingAnalysis(parameters: parameters)
-        } else {
-            // Initialize to valid values even when not showing overlay
-            mriDetrendedSignal = mriRawSignal
-            mriModeledSignal = Array(repeating: 0.0, count: mriRawSignal.count)
-            betaParams = []
-            percentChangeMetric = 0.0
-        }
+        // Always perform detrending analysis regardless of display settings
+        // This ensures the model results are always up-to-date
+        performDetrendingAnalysis(parameters: parameters)
         
         // Force UI refresh by triggering objectWillChange
         self.objectWillChange.send()
@@ -235,19 +229,12 @@ class SimulationData: ObservableObject {
             mriDetrendedSignal = mriRawSignal
             mriModeledSignal = mriRawSignal
             
-            // Re-run downstream analysis, which will recalculate both
-            // the detrended signal and the modeled signal if needed
-            if parameters.showModelOverlay || parameters.showMRIDetrended {
-                performDetrendingAnalysis(parameters: parameters)
-            } else {
-                // Even if not showing model overlay or detrended signal,
-                // we should still initialize these arrays to valid values
-                mriDetrendedSignal = mriRawSignal
-                mriModeledSignal = Array(repeating: 0.0, count: mriRawSignal.count)
-            }
-            // Even if not showing model overlay, we need to generate block patterns
-            // to ensure all views have the data they need
+            // Always generate block patterns
             generateBlockPatterns(parameters: parameters)
+            
+            // Always perform detrending analysis regardless of display settings
+            // This ensures the model results are always up-to-date
+            performDetrendingAnalysis(parameters: parameters)
             
             // Force UI refresh
             objectWillChange.send()
@@ -384,6 +371,17 @@ class SimulationData: ObservableObject {
         mriModeledSignal = mriRawSignal
     }
     
+    /// Public method to perform model analysis without regenerating signals
+    func performModelAnalysis(parameters: SimulationParameters) {
+        print("Performing model analysis with current parameters")
+        
+        // Run the detrending analysis with current parameters
+        performDetrendingAnalysis(parameters: parameters)
+        
+        // Trigger UI update
+        objectWillChange.send()
+    }
+    
     /// Public method to regenerate MRI noise values
     func regenerateMRINoise(parameters: SimulationParameters) {
         print("Explicitly regenerating MRI noise pattern")
@@ -400,15 +398,9 @@ class SimulationData: ObservableObject {
         extractEndTidalCO2(parameters: parameters)
         generateBlockPatterns(parameters: parameters)
         
-        if parameters.showModelOverlay || parameters.showMRIDetrended {
-            performDetrendingAnalysis(parameters: parameters)
-        } else {
-            // Initialize to valid values even when not showing overlay
-            mriDetrendedSignal = mriRawSignal
-            mriModeledSignal = Array(repeating: 0.0, count: mriRawSignal.count)
-            betaParams = []
-            percentChangeMetric = 0.0
-        }
+        // Always perform detrending analysis regardless of display settings
+        // This ensures the model results are always up-to-date
+        performDetrendingAnalysis(parameters: parameters)
         
         // Print some debug info - will appear in console
         print("MRI Noise regenerated successfully, \(mriNormalizedNoiseValues.count) normalized values generated")

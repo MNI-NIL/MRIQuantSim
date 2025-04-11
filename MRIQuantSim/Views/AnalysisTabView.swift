@@ -15,6 +15,24 @@ struct AnalysisTabView: View {
     var onRegenerateNoise: () -> Void // Add a new callback for noise regeneration
     @Environment(\.colorScheme) var colorScheme
     
+    // Check if all model terms would be disabled and prevent that
+    func checkToggleAndUpdate() {
+        // Check if all terms are now off
+        let allTermsOff = !parameters.includeConstantTerm && 
+                         !parameters.includeLinearTerm && 
+                         !parameters.includeQuadraticTerm && 
+                         !parameters.includeCubicTerm
+        
+        // If all would be off, turn constant term back on
+        if allTermsOff {
+            parameters.includeConstantTerm = true
+            print("Forcing constant term to remain on")
+        }
+        
+        // Always call parameter changed to update the model
+        onParameterChanged()
+    }
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
@@ -46,77 +64,25 @@ struct AnalysisTabView: View {
                     ToggleButton(
                         title: "Constant",
                         isOn: $parameters.includeConstantTerm,
-                        onChange: { 
-                            // Prevent turning off the constant term if it's the last one enabled
-                            let wouldAllBeOff = !parameters.includeConstantTerm && 
-                                               !parameters.includeLinearTerm && 
-                                               !parameters.includeQuadraticTerm && 
-                                               !parameters.includeCubicTerm
-                            
-                            if parameters.includeConstantTerm && wouldAllBeOff {
-                                // Don't allow turning off all terms - constant remains on
-                                print("Warning: At least one model term must be included")
-                            } else {
-                                onParameterChanged()
-                            }
-                        }
+                        onChange: { checkToggleAndUpdate() }
                     )
                     
                     ToggleButton(
                         title: "Linear",
                         isOn: $parameters.includeLinearTerm,
-                        onChange: { 
-                            // Prevent turning off the last model term
-                            let wouldAllBeOff = !parameters.includeConstantTerm && 
-                                               !parameters.includeLinearTerm && 
-                                               !parameters.includeQuadraticTerm && 
-                                               !parameters.includeCubicTerm
-                            
-                            if parameters.includeLinearTerm && wouldAllBeOff {
-                                // If this would turn off all terms, turn on the constant term instead
-                                parameters.includeConstantTerm = true
-                            }
-                            
-                            onParameterChanged()
-                        }
+                        onChange: { checkToggleAndUpdate() }
                     )
                     
                     ToggleButton(
                         title: "Quadratic",
                         isOn: $parameters.includeQuadraticTerm,
-                        onChange: { 
-                            // Prevent turning off the last model term
-                            let wouldAllBeOff = !parameters.includeConstantTerm && 
-                                               !parameters.includeLinearTerm && 
-                                               !parameters.includeQuadraticTerm && 
-                                               !parameters.includeCubicTerm
-                            
-                            if parameters.includeQuadraticTerm && wouldAllBeOff {
-                                // If this would turn off all terms, turn on the constant term instead
-                                parameters.includeConstantTerm = true
-                            }
-                            
-                            onParameterChanged()
-                        }
+                        onChange: { checkToggleAndUpdate() }
                     )
                     
                     ToggleButton(
                         title: "Cubic",
                         isOn: $parameters.includeCubicTerm,
-                        onChange: { 
-                            // Prevent turning off the last model term
-                            let wouldAllBeOff = !parameters.includeConstantTerm && 
-                                               !parameters.includeLinearTerm && 
-                                               !parameters.includeQuadraticTerm && 
-                                               !parameters.includeCubicTerm
-                            
-                            if parameters.includeCubicTerm && wouldAllBeOff {
-                                // If this would turn off all terms, turn on the constant term instead
-                                parameters.includeConstantTerm = true
-                            }
-                            
-                            onParameterChanged()
-                        }
+                        onChange: { checkToggleAndUpdate() }
                     )
                     
                     Spacer()
@@ -137,6 +103,7 @@ struct AnalysisTabView: View {
                 }
                 .padding(.bottom, 4)
                 
+                // Add an ID based on the parameters to force refresh when model terms change
                 ForEach(Array(simulationData.betaParams.enumerated()), id: \.offset) { index, value in
                     HStack {
                         Text(betaParamName(index: index))
@@ -144,6 +111,7 @@ struct AnalysisTabView: View {
                         Text(String(format: "%.2f", value))
                     }
                 }
+                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)")
             }
         }
     }
@@ -151,8 +119,33 @@ struct AnalysisTabView: View {
     // Using ToggleButton instead of individual Toggle components
     
     private func betaParamName(index: Int) -> String {
-        let baseNames = ["Stimulus Response", "Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
-        return index < baseNames.count ? baseNames[index] : "Parameter \(index)"
+        // Determine included terms to map parameter indices to the correct names
+        let includedTerms = [
+            true, // Stimulus regressor is always included
+            parameters.includeConstantTerm,
+            parameters.includeLinearTerm,
+            parameters.includeQuadraticTerm,
+            parameters.includeCubicTerm
+        ]
+        
+        let allTerms = ["Stimulus Response", "Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
+        
+        // Count how many true values there are before 'index' in includedTerms
+        var includedIndex = 0
+        var trueCount = 0
+        
+        for i in 0..<includedTerms.count {
+            if includedTerms[i] {
+                if trueCount == index {
+                    includedIndex = i
+                    break
+                }
+                trueCount += 1
+            }
+        }
+        
+        // Return the name for the included term at position 'index'
+        return includedIndex < allTerms.count ? allTerms[includedIndex] : "Parameter \(index)"
     }
     
     // MARK: - Color helpers for dark mode support

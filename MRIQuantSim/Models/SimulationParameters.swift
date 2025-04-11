@@ -69,7 +69,11 @@ final class SimulationParameters {
             mriQuadraticDrift: mriQuadraticDrift,
             mriCubicDrift: mriCubicDrift,
             enableMRINoise: enableMRINoise,
-            enableMRIDrift: enableMRIDrift
+            enableMRIDrift: enableMRIDrift,
+            includeConstantTerm: includeConstantTerm,
+            includeLinearTerm: includeLinearTerm,
+            includeQuadraticTerm: includeQuadraticTerm,
+            includeCubicTerm: includeCubicTerm
         )
     }
 }
@@ -84,6 +88,10 @@ struct ParameterState: Equatable {
     let mriCubicDrift: Double
     let enableMRINoise: Bool
     let enableMRIDrift: Bool
+    let includeConstantTerm: Bool
+    let includeLinearTerm: Bool
+    let includeQuadraticTerm: Bool
+    let includeCubicTerm: Bool
     
     // Helper method to check if only the noise amplitude changed
     func onlyNoiseAmplitudeChangedFrom(previous: ParameterState) -> Bool {
@@ -94,6 +102,18 @@ struct ParameterState: Equatable {
                mriQuadraticDrift == previous.mriQuadraticDrift &&
                mriCubicDrift == previous.mriCubicDrift &&
                enableMRINoise == previous.enableMRINoise &&
-               enableMRIDrift == previous.enableMRIDrift
+               enableMRIDrift == previous.enableMRIDrift &&
+               includeConstantTerm == previous.includeConstantTerm &&
+               includeLinearTerm == previous.includeLinearTerm &&
+               includeQuadraticTerm == previous.includeQuadraticTerm &&
+               includeCubicTerm == previous.includeCubicTerm
+    }
+    
+    // Helper method to check if any model terms changed
+    func modelTermsChangedFrom(previous: ParameterState) -> Bool {
+        return includeConstantTerm != previous.includeConstantTerm ||
+               includeLinearTerm != previous.includeLinearTerm ||
+               includeQuadraticTerm != previous.includeQuadraticTerm ||
+               includeCubicTerm != previous.includeCubicTerm
     }
 }

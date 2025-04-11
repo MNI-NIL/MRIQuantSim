@@ -40,18 +40,34 @@ class SimulationController: ObservableObject {
     
     // Update when any parameter changes
     func parameterChanged() {
-        // If only the MRI noise amplitude has changed, just update the MRI signal
-        // without regenerating the noise pattern
+        // Get current parameter state
         let currentState = parameters.getParameterState()
         
         if let previousState = previousParamState {
+            // Check specifically for changes in model terms (detrending components)
+            let modelTermsChanged = currentState.modelTermsChangedFrom(previous: previousState)
+            
+            // Check if only the MRI noise amplitude changed
             let onlyMRINoiseAmplitudeChanged = currentState.onlyNoiseAmplitudeChangedFrom(previous: previousState)
             
             print("Parameter change detected:")
             print("  - MRI noise amplitude: \(previousState.mriNoiseAmplitude) -> \(currentState.mriNoiseAmplitude)")
+            print("  - Model terms changed: \(modelTermsChanged)")
             print("  - Only amplitude changed: \(onlyMRINoiseAmplitudeChanged)")
             
-            if onlyMRINoiseAmplitudeChanged {
+            if modelTermsChanged {
+                print("Model terms changed, updating analysis without regenerating signals")
+                // Force re-analysis with the current model terms
+                simulationData.performModelAnalysis(parameters: parameters)
+                
+                // Update previous parameter state
+                previousParamState = currentState
+                
+                // Notify observers of the change
+                objectWillChange.send()
+                return
+            }
+            else if onlyMRINoiseAmplitudeChanged {
                 print("Updating with same noise pattern, new amplitude: \(parameters.mriNoiseAmplitude)")
                 // Just update MRI signal with the same noise pattern but new amplitude
                 simulationData.updateMRISignalWithSameNoisePattern(parameters: parameters)
