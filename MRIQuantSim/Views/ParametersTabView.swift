@@ -113,8 +113,14 @@ struct ParametersTabView: View {
                     )
                     
                     parameterRow(
-                        title: "CO2 Variance Amplitude",
+                        title: "CO2 Frequency Variance",
                         value: $parameters.co2VarianceAmplitude,
+                        disabled: !parameters.enableCO2Variance
+                    )
+                    
+                    parameterRow(
+                        title: "CO2 Amplitude Variance (mmHg)",
+                        value: $parameters.co2AmplitudeVariance,
                         disabled: !parameters.enableCO2Variance
                     )
                     

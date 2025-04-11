@@ -266,18 +266,34 @@ class SimulationData: ObservableObject {
             // Base respiratory oscillation
             var respiratoryPhase = 2.0 * Double.pi * breathingRateHz * time
             
-            // Add noise to respiratory frequency if enabled
-            if parameters.enableCO2Variance {
-                let frequencyVariance = sin(2.0 * Double.pi * parameters.co2VarianceFrequency * time) * parameters.co2VarianceAmplitude
-                respiratoryPhase += frequencyVariance
-            }
-            
-            let respiratoryWave = sin(respiratoryPhase)
-            
-            // Map the sine wave [-1,1] to the appropriate CO2 range based on block type
+            // Determine CO2 range based on block type first
             let minCO2 = isEnrichedBlock ? enrichedAirMinCO2 : normalAirMinCO2
             let maxCO2 = isEnrichedBlock ? enrichedAirMaxCO2 : normalAirMaxCO2
-            let mappedValue = minCO2 + (respiratoryWave + 1.0) / 2.0 * (maxCO2 - minCO2)
+            
+            // Add noise to respiratory frequency if enabled
+            var amplitudeModulation = 1.0 // Default amplitude multiplier (no modulation)
+            
+            if parameters.enableCO2Variance {
+                // Use the same modulation frequency and phase for both frequency and amplitude variance
+                let varianceSignal = sin(2.0 * Double.pi * parameters.co2VarianceFrequency * time)
+                
+                // Apply frequency modulation
+                let frequencyVariance = varianceSignal * parameters.co2VarianceAmplitude
+                respiratoryPhase += frequencyVariance
+                
+                // Apply amplitude modulation - scale by a factor that varies around 1.0
+                // This creates a variance of +/- co2AmplitudeVariance mmHg in the final CO2 values
+                let meanCO2Range = (maxCO2 - minCO2)
+                let relativeVariance = parameters.co2AmplitudeVariance / meanCO2Range
+                amplitudeModulation = 1.0 + (varianceSignal * relativeVariance)
+            }
+            
+            // Apply amplitude modulation to the respiratory wave
+            let respiratoryWave = sin(respiratoryPhase)
+            
+            // First map to [0,1] range, then apply amplitude modulation to the range
+            let normalizedWave = (respiratoryWave + 1.0) / 2.0
+            let mappedValue = minCO2 + normalizedWave * (maxCO2 - minCO2) * amplitudeModulation
             
             // Add drift terms if enabled
             var driftTerm = 0.0

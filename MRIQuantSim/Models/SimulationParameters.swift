@@ -19,7 +19,8 @@ final class SimulationParameters {
     
     // Noise Parameters
     var co2VarianceFrequency: Double = 0.05 // Hz
-    var co2VarianceAmplitude: Double = 0.1 // dimensionless multiplier
+    var co2VarianceAmplitude: Double = 0.1 // dimensionless multiplier for frequency modulation
+    var co2AmplitudeVariance: Double = 1.0 // mmHg - amplitude modulation
     var mriNoiseAmplitude: Double = 5.0 // arbitrary units
     
     // Drift Parameters - CO2
@@ -75,6 +76,7 @@ final class SimulationParameters {
             // CO2 parameters
             co2VarianceFrequency: co2VarianceFrequency,
             co2VarianceAmplitude: co2VarianceAmplitude,
+            co2AmplitudeVariance: co2AmplitudeVariance,
             enableCO2Variance: enableCO2Variance,
             
             // Model terms
@@ -101,6 +103,7 @@ struct ParameterState: Equatable {
     // CO2 parameters
     let co2VarianceFrequency: Double
     let co2VarianceAmplitude: Double
+    let co2AmplitudeVariance: Double
     let enableCO2Variance: Bool
     
     // Model terms
@@ -124,6 +127,7 @@ struct ParameterState: Equatable {
                // All CO2 parameters must be the same
                co2VarianceFrequency == previous.co2VarianceFrequency &&
                co2VarianceAmplitude == previous.co2VarianceAmplitude &&
+               co2AmplitudeVariance == previous.co2AmplitudeVariance &&
                enableCO2Variance == previous.enableCO2Variance &&
                
                // All model terms must be the same
@@ -139,6 +143,7 @@ struct ParameterState: Equatable {
         let co2ParamsChanged = 
             co2VarianceFrequency != previous.co2VarianceFrequency ||
             co2VarianceAmplitude != previous.co2VarianceAmplitude ||
+            co2AmplitudeVariance != previous.co2AmplitudeVariance ||
             enableCO2Variance != previous.enableCO2Variance;
             
         // And all other parameters remain the same
