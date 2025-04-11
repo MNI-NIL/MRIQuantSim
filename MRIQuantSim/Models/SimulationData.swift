@@ -175,6 +175,12 @@ class SimulationData: ObservableObject {
         
         if parameters.showModelOverlay || parameters.showMRIDetrended {
             performDetrendingAnalysis(parameters: parameters)
+        } else {
+            // Initialize to valid values even when not showing overlay
+            mriDetrendedSignal = mriRawSignal
+            mriModeledSignal = Array(repeating: 0.0, count: mriRawSignal.count)
+            betaParams = []
+            percentChangeMetric = 0.0
         }
         
         // Force UI refresh by triggering objectWillChange
@@ -233,6 +239,11 @@ class SimulationData: ObservableObject {
             // the detrended signal and the modeled signal if needed
             if parameters.showModelOverlay || parameters.showMRIDetrended {
                 performDetrendingAnalysis(parameters: parameters)
+            } else {
+                // Even if not showing model overlay or detrended signal,
+                // we should still initialize these arrays to valid values
+                mriDetrendedSignal = mriRawSignal
+                mriModeledSignal = Array(repeating: 0.0, count: mriRawSignal.count)
             }
             // Even if not showing model overlay, we need to generate block patterns
             // to ensure all views have the data they need
@@ -391,6 +402,12 @@ class SimulationData: ObservableObject {
         
         if parameters.showModelOverlay || parameters.showMRIDetrended {
             performDetrendingAnalysis(parameters: parameters)
+        } else {
+            // Initialize to valid values even when not showing overlay
+            mriDetrendedSignal = mriRawSignal
+            mriModeledSignal = Array(repeating: 0.0, count: mriRawSignal.count)
+            betaParams = []
+            percentChangeMetric = 0.0
         }
         
         // Print some debug info - will appear in console
@@ -454,6 +471,22 @@ class SimulationData: ObservableObject {
         // Construct design matrix for MRI signal
         var designMatrix: [[Double]] = []
         
+        // Check if any model term is included
+        let hasAnyModelTerm = parameters.includeConstantTerm || 
+                             parameters.includeLinearTerm || 
+                             parameters.includeQuadraticTerm || 
+                             parameters.includeCubicTerm
+        
+        // If no model terms are included, set model signals to zeros and return
+        if !hasAnyModelTerm {
+            print("Warning: No model terms selected. Model will be all zeros.")
+            mriModeledSignal = Array(repeating: 0.0, count: mriTimePoints.count)
+            mriDetrendedSignal = mriRawSignal  // Just use raw signal with no detrending
+            betaParams = []
+            percentChangeMetric = 0.0
+            return
+        }
+        
         // Add block pattern (stimulus regressor)
         designMatrix.append(mriBlockPattern)
         
@@ -480,6 +513,16 @@ class SimulationData: ObservableObject {
             designMatrix.append(normalizedTimes)
         }
         
+        // Ensure we have at least one regressor (should never happen with the check above, but as extra safety)
+        if designMatrix.isEmpty {
+            print("Error: Empty design matrix. Setting model to zeros.")
+            mriModeledSignal = Array(repeating: 0.0, count: mriTimePoints.count)
+            mriDetrendedSignal = mriRawSignal
+            betaParams = []
+            percentChangeMetric = 0.0
+            return
+        }
+        
         // Transpose design matrix to the form expected by the GLM solver
         let X = transposeMatrix(designMatrix)
         
@@ -491,27 +534,36 @@ class SimulationData: ObservableObject {
             let responseAmplitude = abs(betaParams[0])
             let baseline = abs(betaParams[1])
             percentChangeMetric = (responseAmplitude / baseline) * 100.0
+        } else {
+            percentChangeMetric = 0.0
         }
         
         // Generate modeled signal
         mriModeledSignal = Array(repeating: 0.0, count: mriTimePoints.count)
-        for i in 0..<mriTimePoints.count {
-            var modelValue = 0.0
-            for j in 0..<betaParams.count {
-                modelValue += betaParams[j] * X[i][j]
+        if !betaParams.isEmpty {
+            for i in 0..<mriTimePoints.count {
+                var modelValue = 0.0
+                for j in 0..<betaParams.count {
+                    modelValue += betaParams[j] * X[i][j]
+                }
+                mriModeledSignal[i] = modelValue
             }
-            mriModeledSignal[i] = modelValue
         }
         
         // Generate detrended signal by removing drift components
         mriDetrendedSignal = Array(repeating: 0.0, count: mriTimePoints.count)
-        for i in 0..<mriTimePoints.count {
-            var trendComponents = 0.0
-            // Start from j=2 to skip stimulus and constant terms
-            for j in 2..<betaParams.count {
-                trendComponents += betaParams[j] * X[i][j]
+        if betaParams.count > 2 {
+            for i in 0..<mriTimePoints.count {
+                var trendComponents = 0.0
+                // Start from j=2 to skip stimulus and constant terms
+                for j in 2..<betaParams.count {
+                    trendComponents += betaParams[j] * X[i][j]
+                }
+                mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
             }
-            mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
+        } else {
+            // If no drift components, detrended signal equals raw signal
+            mriDetrendedSignal = mriRawSignal
         }
     }
     

@@ -46,25 +46,77 @@ struct AnalysisTabView: View {
                     ToggleButton(
                         title: "Constant",
                         isOn: $parameters.includeConstantTerm,
-                        onChange: { onParameterChanged() }
+                        onChange: { 
+                            // Prevent turning off the constant term if it's the last one enabled
+                            let wouldAllBeOff = !parameters.includeConstantTerm && 
+                                               !parameters.includeLinearTerm && 
+                                               !parameters.includeQuadraticTerm && 
+                                               !parameters.includeCubicTerm
+                            
+                            if parameters.includeConstantTerm && wouldAllBeOff {
+                                // Don't allow turning off all terms - constant remains on
+                                print("Warning: At least one model term must be included")
+                            } else {
+                                onParameterChanged()
+                            }
+                        }
                     )
                     
                     ToggleButton(
                         title: "Linear",
                         isOn: $parameters.includeLinearTerm,
-                        onChange: { onParameterChanged() }
+                        onChange: { 
+                            // Prevent turning off the last model term
+                            let wouldAllBeOff = !parameters.includeConstantTerm && 
+                                               !parameters.includeLinearTerm && 
+                                               !parameters.includeQuadraticTerm && 
+                                               !parameters.includeCubicTerm
+                            
+                            if parameters.includeLinearTerm && wouldAllBeOff {
+                                // If this would turn off all terms, turn on the constant term instead
+                                parameters.includeConstantTerm = true
+                            }
+                            
+                            onParameterChanged()
+                        }
                     )
                     
                     ToggleButton(
                         title: "Quadratic",
                         isOn: $parameters.includeQuadraticTerm,
-                        onChange: { onParameterChanged() }
+                        onChange: { 
+                            // Prevent turning off the last model term
+                            let wouldAllBeOff = !parameters.includeConstantTerm && 
+                                               !parameters.includeLinearTerm && 
+                                               !parameters.includeQuadraticTerm && 
+                                               !parameters.includeCubicTerm
+                            
+                            if parameters.includeQuadraticTerm && wouldAllBeOff {
+                                // If this would turn off all terms, turn on the constant term instead
+                                parameters.includeConstantTerm = true
+                            }
+                            
+                            onParameterChanged()
+                        }
                     )
                     
                     ToggleButton(
                         title: "Cubic",
                         isOn: $parameters.includeCubicTerm,
-                        onChange: { onParameterChanged() }
+                        onChange: { 
+                            // Prevent turning off the last model term
+                            let wouldAllBeOff = !parameters.includeConstantTerm && 
+                                               !parameters.includeLinearTerm && 
+                                               !parameters.includeQuadraticTerm && 
+                                               !parameters.includeCubicTerm
+                            
+                            if parameters.includeCubicTerm && wouldAllBeOff {
+                                // If this would turn off all terms, turn on the constant term instead
+                                parameters.includeConstantTerm = true
+                            }
+                            
+                            onParameterChanged()
+                        }
                     )
                     
                     Spacer()
