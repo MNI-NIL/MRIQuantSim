@@ -175,9 +175,12 @@ struct ContentView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var savedParameters: [SimulationParameters]
     
-    // Use StateObject to maintain the simulator between view refreshes
-    @StateObject private var simulator = SimulationController()
+    // Accept the simulator as a parameter rather than creating it locally
+    @ObservedObject var simulator: SimulationController
     @State private var selectedTab = 0
+    
+    // State for the split position
+    @State private var topPanelHeight: CGFloat = 500
     
     var body: some View {
         // Use VSplitView for a draggable divider between the graph and parameters sections
@@ -206,7 +209,7 @@ struct ContentView: View {
                 .id("mriGraph-\(simulator.viewRefreshTrigger)") // Force redraw when trigger changes
             }
             .padding(.horizontal)
-            .frame(minHeight: 300, idealHeight: 450, maxHeight: .infinity)
+            .frame(height: topPanelHeight)
             .background(Color(NSColor.textBackgroundColor))
             
             // LOWER SECTION: Parameters, Display and Analysis Tabs
@@ -245,7 +248,7 @@ struct ContentView: View {
             .frame(minHeight: 250, idealHeight: 300, maxHeight: .infinity)
             .background(Color(NSColor.controlBackgroundColor))
         }
-        .padding()
+        .padding(20)
         .onAppear {
             // Delay just slightly to ensure view is fully initialized
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

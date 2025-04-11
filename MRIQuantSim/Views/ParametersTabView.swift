@@ -26,9 +26,17 @@ struct CollapsibleSection<Content: View>: View {
         // Generate a consistent UserDefaults key
         let defaultsKey = "CollapsibleSection_\(sectionId)"
         
-        // Load initial state from UserDefaults, default to expanded if not found
-        let savedState = UserDefaults.standard.object(forKey: defaultsKey) as? Bool
-        _isExpanded = State(initialValue: savedState ?? true)
+        // Check if the app has been launched before
+        let appHasLaunchedBefore = UserDefaults.standard.bool(forKey: "AppHasLaunchedBefore")
+        
+        // If this is the first launch, start with all sections collapsed
+        if !appHasLaunchedBefore {
+            _isExpanded = State(initialValue: false)
+        } else {
+            // Load saved state from UserDefaults, default to collapsed if not found
+            let savedState = UserDefaults.standard.object(forKey: defaultsKey) as? Bool
+            _isExpanded = State(initialValue: savedState ?? false)
+        }
     }
     
     private var sectionBackgroundColor: Color {
