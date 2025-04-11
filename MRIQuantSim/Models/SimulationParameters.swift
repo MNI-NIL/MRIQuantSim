@@ -113,6 +113,61 @@ final class SimulationParameters {
     
     init() {}
     
+    // Function to reset all parameters to their default values
+    func resetToDefaults() {
+        // Signal Parameters
+        co2SamplingRate = 10.0
+        breathingRate = 15.0
+        mriSamplingInterval = 2.0
+        mriBaselineSignal = 1200.0
+        mriResponseAmplitude = 100.0
+        co2ResponseAmplitude = 10.0
+        
+        // Response Shape Parameters
+        responseShapeTypeString = ResponseShapeType.exponential.rawValue
+        responseRiseTimeConstant = 10.0
+        responseFallTimeConstant = 5.0
+        
+        // Analysis Model Parameters
+        analysisModelTypeString = ResponseShapeType.exponential.rawValue
+        analysisRiseTimeConstant = 10.0
+        analysisFallTimeConstant = 5.0
+        
+        // Noise Parameters
+        co2VarianceFrequency = 0.05
+        co2VarianceAmplitude = 1.5
+        co2AmplitudeVariance = 0.5
+        mriNoiseAmplitude = 5.0
+        
+        // Drift Parameters - CO2
+        co2LinearDrift = 5.0
+        co2QuadraticDrift = 5.5
+        co2CubicDrift = 10.0
+        
+        // Drift Parameters - MRI
+        mriLinearDrift = 3.0
+        mriQuadraticDrift = 3.0
+        mriCubicDrift = 4.0
+        
+        // Display Parameters
+        showCO2Raw = true
+        showCO2EndTidal = true
+        showMRIRaw = true
+        showMRIDetrended = false
+        showModelOverlay = true
+        useMRIDynamicRange = true
+        enableCO2Variance = true
+        enableMRINoise = true
+        enableCO2Drift = true
+        enableMRIDrift = true
+        
+        // Detrending Parameters
+        includeConstantTerm = true
+        includeLinearTerm = true
+        includeQuadraticTerm = true
+        includeCubicTerm = true
+    }
+    
     // Create a representation of parameter state as a struct
     // This avoids using copy() which might not be compatible with @Model
     @Transient var cachedParamState: ParameterState?
