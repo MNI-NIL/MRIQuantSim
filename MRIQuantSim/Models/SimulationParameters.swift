@@ -18,18 +18,18 @@ enum ResponseShapeType: String, Codable, CaseIterable {
 @Model
 final class SimulationParameters {
     // Signal Parameters
-    var co2SamplingRate: Double = 10.0 // Hz
-    var breathingRate: Double = 15.0 // breaths per minute
-    var mriSamplingInterval: Double = 2.0 // seconds
-    var mriBaselineSignal: Double = 1200.0 // arbitrary units
-    var mriResponseAmplitude: Double = 100.0 // arbitrary units
-    var co2ResponseAmplitude: Double = 10.0 // mmHg
+    var co2SamplingRate: Double
+    var breathingRate: Double
+    var mriSamplingInterval: Double
+    var mriBaselineSignal: Double
+    var mriResponseAmplitude: Double
+    var co2ResponseAmplitude: Double
     
     // Response Shape Parameters for Signal Simulation
     // Store as a string to avoid issues with SwiftData and enums
-    var responseShapeTypeString: String = ResponseShapeType.exponential.rawValue
-    var responseRiseTimeConstant: Double = 10.0 // seconds
-    var responseFallTimeConstant: Double = 5.0 // seconds
+    var responseShapeTypeString: String
+    var responseRiseTimeConstant: Double
+    var responseFallTimeConstant: Double
     
     // Computed property to convert between string and enum
     @Transient
@@ -43,9 +43,9 @@ final class SimulationParameters {
     }
     
     // Analysis Model Parameters (for GLM analysis - potentially different from simulation)
-    var analysisModelTypeString: String = ResponseShapeType.exponential.rawValue
-    var analysisRiseTimeConstant: Double = 10.0 // seconds
-    var analysisFallTimeConstant: Double = 5.0 // seconds
+    var analysisModelTypeString: String
+    var analysisRiseTimeConstant: Double
+    var analysisFallTimeConstant: Double
     
     // Computed property for analysis model type
     @Transient
@@ -74,81 +74,78 @@ final class SimulationParameters {
     }
     
     // Noise Parameters
-    var co2VarianceFrequency: Double = 0.05 // Hz
-    var co2VarianceAmplitude: Double = 1.5 // dimensionless multiplier for frequency modulation
-    var co2AmplitudeVariance: Double = 0.5 // mmHg - amplitude modulation
-    var mriNoiseAmplitude: Double = 5.0 // arbitrary units
+    var co2VarianceFrequency: Double
+    var co2VarianceAmplitude: Double
+    var co2AmplitudeVariance: Double
+    var mriNoiseAmplitude: Double
     
     // Drift Parameters - CO2
-    var co2LinearDrift: Double = 5.0 // mmHg
-    var co2QuadraticDrift: Double = 5.5 // mmHg
-    var co2CubicDrift: Double = 10.0 // mmHg
+    var co2LinearDrift: Double
+    var co2QuadraticDrift: Double
+    var co2CubicDrift: Double
     
     // Drift Parameters - MRI
-    var mriLinearDrift: Double = 3.0 // au
-    var mriQuadraticDrift: Double = 3.0 // au
-    var mriCubicDrift: Double = 4.0 // au
+    var mriLinearDrift: Double
+    var mriQuadraticDrift: Double
+    var mriCubicDrift: Double
     
     // Display Parameters
-    var showCO2Raw: Bool = true
-    var showCO2EndTidal: Bool = true
-    var showMRIRaw: Bool = true
-    var showMRIDetrended: Bool = false
-    var showModelOverlay: Bool = true
-    var showResidualError: Bool = false
-    var useMRIDynamicRange: Bool = true
-    var enableCO2Variance: Bool = true
-    var enableMRINoise: Bool = true
-    var enableCO2Drift: Bool = true
-    var enableMRIDrift: Bool = true
+    var showCO2Raw: Bool
+    var showCO2EndTidal: Bool
+    var showMRIRaw: Bool
+    var showMRIDetrended: Bool
+    var showModelOverlay: Bool
+    var showResidualError: Bool
+    var useMRIDynamicRange: Bool
+    var enableCO2Variance: Bool
+    var enableMRINoise: Bool
+    var enableCO2Drift: Bool
+    var enableMRIDrift: Bool
     
     // Detrending Parameters
-    var includeConstantTerm: Bool = true
-    var includeLinearTerm: Bool = true
-    var includeQuadraticTerm: Bool = true
-    var includeCubicTerm: Bool = true
+    var includeConstantTerm: Bool
+    var includeLinearTerm: Bool
+    var includeQuadraticTerm: Bool
+    var includeCubicTerm: Bool
     
     // Computed model parameters (not stored, updated after analysis)
     @Transient var modelBetaParams: [Double] = []
     @Transient var percentChangeMetric: Double = 0.0
     
-    init() {}
-    
-    // Function to reset all parameters to their default values
-    func resetToDefaults() {
+    init() {
         // Signal Parameters
-        co2SamplingRate = 10.0
-        breathingRate = 15.0
-        mriSamplingInterval = 2.0
-        mriBaselineSignal = 1200.0
-        mriResponseAmplitude = 100.0
-        co2ResponseAmplitude = 10.0
+        co2SamplingRate = 10.0 // Hz
+        breathingRate = 15.0 // breaths per minute
+        mriSamplingInterval = 2.0 // seconds
+        mriBaselineSignal = 1200.0 // arbitrary units
+        mriResponseAmplitude = 100.0 // arbitrary units
+        co2ResponseAmplitude = 10.0 // mmHg
         
         // Response Shape Parameters
         responseShapeTypeString = ResponseShapeType.exponential.rawValue
-        responseRiseTimeConstant = 10.0
-        responseFallTimeConstant = 5.0
+        responseRiseTimeConstant = 10.0 // seconds
+        responseFallTimeConstant = 5.0 // seconds
         
         // Analysis Model Parameters
         analysisModelTypeString = ResponseShapeType.exponential.rawValue
-        analysisRiseTimeConstant = 10.0
-        analysisFallTimeConstant = 5.0
+        analysisRiseTimeConstant = 10.0 // seconds
+        analysisFallTimeConstant = 5.0 // seconds
         
         // Noise Parameters
-        co2VarianceFrequency = 0.05
-        co2VarianceAmplitude = 1.5
-        co2AmplitudeVariance = 0.5
-        mriNoiseAmplitude = 5.0
+        co2VarianceFrequency = 0.05 // Hz
+        co2VarianceAmplitude = 1.5 // dimensionless multiplier for frequency modulation
+        co2AmplitudeVariance = 0.5 // mmHg - amplitude modulation
+        mriNoiseAmplitude = 5.0 // arbitrary units
         
         // Drift Parameters - CO2
-        co2LinearDrift = 5.0
-        co2QuadraticDrift = 5.5
-        co2CubicDrift = 10.0
+        co2LinearDrift = 5.0 // mmHg
+        co2QuadraticDrift = -5.5 // mmHg
+        co2CubicDrift = -10.0 // mmHg
         
         // Drift Parameters - MRI
-        mriLinearDrift = 3.0
-        mriQuadraticDrift = 3.0
-        mriCubicDrift = 4.0
+        mriLinearDrift = 3.0 // au
+        mriQuadraticDrift = 3.0 // au
+        mriCubicDrift = 4.0 // au
         
         // Display Parameters
         showCO2Raw = true
@@ -168,6 +165,66 @@ final class SimulationParameters {
         includeLinearTerm = true
         includeQuadraticTerm = true
         includeCubicTerm = true
+    }
+    
+    // Function to reset all parameters to their default values
+    func resetToDefaults() {
+        // Create a new instance with default values
+        let defaults = SimulationParameters()
+        
+        // Copy all properties from the default instance
+        // Signal Parameters
+        co2SamplingRate = defaults.co2SamplingRate
+        breathingRate = defaults.breathingRate
+        mriSamplingInterval = defaults.mriSamplingInterval
+        mriBaselineSignal = defaults.mriBaselineSignal
+        mriResponseAmplitude = defaults.mriResponseAmplitude
+        co2ResponseAmplitude = defaults.co2ResponseAmplitude
+        
+        // Response Shape Parameters
+        responseShapeTypeString = defaults.responseShapeTypeString
+        responseRiseTimeConstant = defaults.responseRiseTimeConstant
+        responseFallTimeConstant = defaults.responseFallTimeConstant
+        
+        // Analysis Model Parameters
+        analysisModelTypeString = defaults.analysisModelTypeString
+        analysisRiseTimeConstant = defaults.analysisRiseTimeConstant
+        analysisFallTimeConstant = defaults.analysisFallTimeConstant
+        
+        // Noise Parameters
+        co2VarianceFrequency = defaults.co2VarianceFrequency
+        co2VarianceAmplitude = defaults.co2VarianceAmplitude
+        co2AmplitudeVariance = defaults.co2AmplitudeVariance
+        mriNoiseAmplitude = defaults.mriNoiseAmplitude
+        
+        // Drift Parameters - CO2
+        co2LinearDrift = defaults.co2LinearDrift
+        co2QuadraticDrift = defaults.co2QuadraticDrift
+        co2CubicDrift = defaults.co2CubicDrift
+        
+        // Drift Parameters - MRI
+        mriLinearDrift = defaults.mriLinearDrift
+        mriQuadraticDrift = defaults.mriQuadraticDrift
+        mriCubicDrift = defaults.mriCubicDrift
+        
+        // Display Parameters
+        showCO2Raw = defaults.showCO2Raw
+        showCO2EndTidal = defaults.showCO2EndTidal
+        showMRIRaw = defaults.showMRIRaw
+        showMRIDetrended = defaults.showMRIDetrended
+        showModelOverlay = defaults.showModelOverlay
+        showResidualError = defaults.showResidualError
+        useMRIDynamicRange = defaults.useMRIDynamicRange
+        enableCO2Variance = defaults.enableCO2Variance
+        enableMRINoise = defaults.enableMRINoise
+        enableCO2Drift = defaults.enableCO2Drift
+        enableMRIDrift = defaults.enableMRIDrift
+        
+        // Detrending Parameters
+        includeConstantTerm = defaults.includeConstantTerm
+        includeLinearTerm = defaults.includeLinearTerm
+        includeQuadraticTerm = defaults.includeQuadraticTerm
+        includeCubicTerm = defaults.includeCubicTerm
     }
     
     // Create a representation of parameter state as a struct
