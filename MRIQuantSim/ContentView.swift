@@ -104,7 +104,7 @@ struct ContentView: View {
                     dataSeries: getCO2Series(),
                     yRange: 0...50
                 )
-                .padding(.top, 64)
+                .padding(.top, 12)
                 
                 // MRI Graph
                 SignalGraphView(
@@ -187,12 +187,7 @@ struct ContentView: View {
     private func getMRIYRange() -> ClosedRange<Double>? {
         // Always provide a default range as fallback
         let baseline = simulator.parameters.mriBaselineSignal
-        let defaultRange = (baseline - 50)...(baseline + 50)
-        
-        // If not using dynamic range, return fixed range
-        if !simulator.parameters.useMRIDynamicRange {
-            return defaultRange
-        }
+        let defaultRange = (0.0 - 5.0)...(baseline + 50.0)
         
         // Get all series that will be displayed
         let series = getMRISeries().filter { $0.isVisible }
@@ -213,15 +208,27 @@ struct ContentView: View {
             return defaultRange
         }
         
-        let min = allValues.min() ?? (baseline - 50)
-        let max = allValues.max() ?? (baseline + 50)
+        // Get actual min and max of the data
+        let actualMin = allValues.min() ?? 0.0
+        let actualMax = allValues.max() ?? (baseline + 50.0)
         
-        // Ensure range is not zero or too small
-        if max - min < 1.0 {
+        // Ensure range is not too small
+        if actualMax - actualMin < 1.0 {
             return defaultRange
         }
         
-        let buffer = (max - min) * 0.1 // 10% buffer
-        return (min - buffer)...(max + buffer)
+        // Calculate buffer - 10% of the range or at least 5.0
+        let bufferAmount = max((actualMax - actualMin) * 0.1, 5.0)
+        
+        // For dynamic range: use actual min and max with buffer
+        if simulator.parameters.useMRIDynamicRange {
+            return (actualMin - bufferAmount)...(actualMax + bufferAmount)
+        } 
+        // For fixed range: use zero as minimum and actual max
+        else {
+            // Use zero as the minimum (with small buffer below zero)
+            let minBuffer = bufferAmount * 0.2 // smaller buffer below zero
+            return (0.0 - minBuffer)...(actualMax + bufferAmount)
+        }
     }
 }

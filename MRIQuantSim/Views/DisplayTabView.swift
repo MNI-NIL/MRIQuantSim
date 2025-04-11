@@ -75,7 +75,7 @@ struct DisplayTabView: View {
                 // Scaling Options Section
                 CollapsibleSection(title: "Scaling Options", sectionId: "scaling_options") {
                     VStack(alignment: .leading, spacing: 8) {
-                        Toggle("Use MRI Dynamic Range", isOn: $parameters.useMRIDynamicRange)
+                        Toggle("Zoom to MRI Dynamic Range", isOn: $parameters.useMRIDynamicRange)
                             .onChange(of: parameters.useMRIDynamicRange) { _, _ in onParameterChanged() }
                             .padding(.bottom, 4)
                         
