@@ -92,8 +92,9 @@ struct ContentView: View {
     @State private var selectedTab = 0
     
     var body: some View {
-        VStack(spacing: 0) {
-            // Graphs container
+        // Use VSplitView for a draggable divider between the graph and parameters sections
+        VSplitView {
+            // UPPER SECTION: Graphs container
             VStack(spacing: 8) {
                 // CO2 Graph
                 SignalGraphView(
@@ -115,19 +116,17 @@ struct ContentView: View {
                 )
             }
             .padding(.horizontal)
-            .frame(maxHeight: 450)
+            .frame(minHeight: 300, idealHeight: 450, maxHeight: .infinity)
+            .background(Color(NSColor.textBackgroundColor))
             
-            Divider()
-                .padding(.vertical, 4)
-            
-            // Tabs for Parameters and Analysis
+            // LOWER SECTION: Parameters and Analysis Tabs
             TabView(selection: $selectedTab) {
                 ParametersTabView(
                     parameters: $simulator.parameters,
                     onParameterChanged: simulator.parameterChanged
                 )
                 .tabItem {
-                    Label("Signal Parameters", systemImage: "waveform")
+                    Label("Signal", systemImage: "waveform")
                 }
                 .tag(0)
                 
@@ -142,7 +141,8 @@ struct ContentView: View {
                 }
                 .tag(1)
             }
-            .frame(minHeight: 300)
+            .frame(minHeight: 250, idealHeight: 300, maxHeight: .infinity)
+            .background(Color(NSColor.controlBackgroundColor))
         }
         .padding()
         .onAppear {
