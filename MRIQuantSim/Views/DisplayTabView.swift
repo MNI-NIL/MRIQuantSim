@@ -66,6 +66,12 @@ struct DisplayTabView: View {
                                     onChange: { onParameterChanged() }
                                 )
                                 
+                                ToggleButton(
+                                    title: "Residuals",
+                                    isOn: $parameters.showResidualError,
+                                    onChange: { onParameterChanged() }
+                                )
+                                
                                 Spacer()
                             }
                         }

@@ -54,6 +54,7 @@ class SimulationData: ObservableObject {
     @Published var mriRawSignal: [Double] = []
     @Published var mriDetrendedSignal: [Double] = []
     @Published var mriModeledSignal: [Double] = []
+    @Published var mriResidualError: [Double] = []
     @Published var co2TimePoints: [Double] = []
     @Published var mriTimePoints: [Double] = []
     @Published var co2BlockPattern: [Double] = []
@@ -142,6 +143,20 @@ class SimulationData: ObservableObject {
             ))
         }
         
+        // Residual error points (raw data minus model fit)
+        if !mriTimePoints.isEmpty && !mriResidualError.isEmpty {
+            let count = min(mriTimePoints.count, mriResidualError.count)
+            seriesData.append(TimeSeriesData(
+                title: "Residual Error",
+                xValues: Array(mriTimePoints.prefix(count)),
+                yValues: Array(mriResidualError.prefix(count)),
+                color: .purple,
+                showPoints: true,
+                isVisible: parameters.showResidualError,
+                symbolSize: 20
+            ))
+        }
+        
         return seriesData
     }
     
@@ -160,6 +175,7 @@ class SimulationData: ObservableObject {
         mriRawSignal = []
         mriDetrendedSignal = []
         mriModeledSignal = []
+        mriResidualError = []
         co2TimePoints = []
         mriTimePoints = []
         co2BlockPattern = []
@@ -258,6 +274,7 @@ class SimulationData: ObservableObject {
             // Initialize detrended and modeled signals
             mriDetrendedSignal = mriRawSignal
             mriModeledSignal = mriRawSignal
+            mriResidualError = Array(repeating: 0.0, count: mriRawSignal.count)
             
             // Always generate block patterns
             generateBlockPatterns(parameters: parameters)
@@ -485,6 +502,7 @@ class SimulationData: ObservableObject {
         // Initialize detrended signal as a copy of raw signal
         mriDetrendedSignal = mriRawSignal
         mriModeledSignal = mriRawSignal
+        mriResidualError = Array(repeating: 0.0, count: mriRawSignal.count)
     }
     
     /// Public method to perform model analysis without regenerating signals
@@ -715,6 +733,12 @@ class SimulationData: ObservableObject {
                 }
                 mriModeledSignal[i] = modelValue
             }
+        }
+        
+        // Calculate residual error (raw data minus model fit)
+        mriResidualError = Array(repeating: 0.0, count: mriTimePoints.count)
+        for i in 0..<mriTimePoints.count {
+            mriResidualError[i] = mriRawSignal[i] - mriModeledSignal[i]
         }
         
         // Generate detrended signal by removing drift components

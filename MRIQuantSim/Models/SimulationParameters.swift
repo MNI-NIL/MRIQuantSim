@@ -95,6 +95,7 @@ final class SimulationParameters {
     var showMRIRaw: Bool = true
     var showMRIDetrended: Bool = false
     var showModelOverlay: Bool = true
+    var showResidualError: Bool = false
     var useMRIDynamicRange: Bool = true
     var enableCO2Variance: Bool = true
     var enableMRINoise: Bool = true
@@ -155,6 +156,7 @@ final class SimulationParameters {
         showMRIRaw = true
         showMRIDetrended = false
         showModelOverlay = true
+        showResidualError = false
         useMRIDynamicRange = true
         enableCO2Variance = true
         enableMRINoise = true
