@@ -65,6 +65,9 @@ class SimulationData: ObservableObject {
     // Store normalized noise values (mean 0, std 1) separately so they can be reused
     private var mriNormalizedNoiseValues: [Double] = []
     
+    // Store random phase offset for CO2 variance
+    private var co2VariancePhaseOffset: Double = 0.0
+    
     // Helper methods to create TimeSeriesData objects
     func getCO2SeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
         var seriesData: [TimeSeriesData] = []
@@ -167,7 +170,7 @@ class SimulationData: ObservableObject {
     let normalAirMaxCO2: Double = 40.0 // mmHg
     let enrichedAirMinCO2: Double = 38.0 // mmHg (5% of 760mmHg)
     
-    func generateSimulatedData(parameters: SimulationParameters, regenerateNoise: Bool = false) {
+    func generateSimulatedData(parameters: SimulationParameters, regenerateNoise: Bool = false, regenerateVariancePhase: Bool = false) {
         // Reset all arrays to ensure clean state
         co2RawSignal = []
         co2EndTidalSignal = []
@@ -181,6 +184,12 @@ class SimulationData: ObservableObject {
         co2BlockPattern = []
         mriBlockPattern = []
         betaParams = []
+        
+        // Randomize CO2 variance phase offset if requested
+        if regenerateVariancePhase {
+            co2VariancePhaseOffset = Double.random(in: 0..<(2.0 * Double.pi))
+            print("Generated new CO2 variance phase offset: \(co2VariancePhaseOffset)")
+        }
         
         // Generate new data
         generateCO2Signal(parameters: parameters)
@@ -361,8 +370,8 @@ class SimulationData: ObservableObject {
             var amplitudeModulation = 1.0 // Default amplitude multiplier (no modulation)
             
             if parameters.enableCO2Variance {
-                // Use the same modulation frequency and phase for both frequency and amplitude variance
-                let varianceSignal = sin(2.0 * Double.pi * parameters.co2VarianceFrequency * time)
+                // Apply the random phase offset to the variance signal
+                let varianceSignal = sin(2.0 * Double.pi * parameters.co2VarianceFrequency * time + co2VariancePhaseOffset)
                 
                 // Apply frequency modulation
                 let frequencyVariance = varianceSignal * parameters.co2VarianceAmplitude
@@ -521,6 +530,27 @@ class SimulationData: ObservableObject {
         print("Regenerating CO2 signal with updated variance parameters")
         
         // Only regenerate the CO2 signal
+        generateCO2Signal(parameters: parameters)
+        
+        // Extract end-tidal CO2 based on the new signal
+        extractEndTidalCO2(parameters: parameters)
+        
+        // Update the CO2 block pattern
+        generateBlockPatterns(parameters: parameters)
+        
+        // Trigger UI update
+        objectWillChange.send()
+    }
+    
+    /// Public method to randomize the CO2 variance phase
+    func randomizeCO2VariancePhase(parameters: SimulationParameters) {
+        print("Randomizing CO2 variance phase")
+        
+        // Generate a new random phase offset
+        co2VariancePhaseOffset = Double.random(in: 0..<(2.0 * Double.pi))
+        print("New CO2 variance phase offset: \(co2VariancePhaseOffset)")
+        
+        // Reset CO2 variance phase by regenerating CO2 signal with the new phase offset
         generateCO2Signal(parameters: parameters)
         
         // Extract end-tidal CO2 based on the new signal
