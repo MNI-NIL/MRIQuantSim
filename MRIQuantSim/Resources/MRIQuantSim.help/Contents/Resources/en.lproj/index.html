@@ -2,10 +2,294 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MRIQuantSim Help</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            font-weight: 500;
+            color: #000;
+        }
+        h1 {
+            font-size: 28px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 22px;
+            margin-top: 30px;
+        }
+        h3 {
+            font-size: 18px;
+            margin-top: 25px;
+        }
+        p {
+            margin: 15px 0;
+        }
+        ul, ol {
+            margin: 15px 0;
+            padding-left: 25px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .note {
+            background-color: #f8f9fa;
+            border-left: 4px solid #4285f4;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .tip {
+            background-color: #f0f9eb;
+            border-left: 4px solid #67c23a;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 0 5px 5px 0;
+        }
+        .section {
+            margin-bottom: 40px;
+        }
+        .image-placeholder {
+            background-color: #f5f5f5;
+            border: 1px dashed #ccc;
+            padding: 20px;
+            text-align: center;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f5f5f5;
+        }
+        tr:hover {
+            background-color: #f9f9f9;
+        }
+    </style>
 </head>
 <body>
-    <h1>Welcome to MRIQuantSim Help</h1>
-    <p>This is a sample help page for the MRIQuantSim application.</p>
+    <div class="section">
+        <h1>Welcome to MRIQuantSim</h1>
+        <p>MRIQuantSim demonstrates how quantitative response amplitudes can be extracted from noisy physiological signals where low-frequency drift may be present.</p>
+        
+        <div class="image-placeholder">
+            [Application main window screenshot]
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>About MRIQuantSim</h2>
+        <p>MRIQuantSim is designed to illustrate the challenges and solutions in extracting meaningful quantitative measurements from physiological data. The application focuses on two key examples:</p>
+        
+        <ul>
+            <li><strong>End-tidal CO<sub>2</sub> Estimation</strong>: Measuring the change in end-tidal CO<sub>2</sub> when breathing air with added CO<sub>2</sub>.</li>
+            <li><strong>Functional MRI Signal Change</strong>: Determining the corresponding percent change in functional MRI signal amplitude.</li>
+        </ul>
+        
+        <p>These measurements can be challenging to obtain accurately due to:</p>
+        <ul>
+            <li>Noise in the signal</li>
+            <li>Low-frequency drift</li>
+            <li>Complex response waveform shapes</li>
+        </ul>
+        
+        <p>MRIQuantSim solves these challenges using a general linear model (GLM) approach. By fitting the data to an appropriate model, the application can extract parameter estimates that determine both the absolute change in end-tidal CO<sub>2</sub> and the percent change in MRI signal.</p>
+    </div>
+
+    <div class="section">
+        <h2>Getting Started</h2>
+        <p>MRIQuantSim features a tabbed interface with three main sections:</p>
+        
+        <ol>
+            <li><strong>Parameters</strong>: Set the simulation parameters</li>
+            <li><strong>Display</strong>: View the simulated signals and analysis</li>
+            <li><strong>Analysis</strong>: Examine detailed analysis results</li>
+        </ol>
+        
+        <div class="image-placeholder">
+            [Tab interface screenshot]
+        </div>
+        
+        <p>To begin exploring:</p>
+        <ol>
+            <li>Start with the default parameters in the Parameters tab</li>
+            <li>Switch to the Display tab to visualize the simulated signals</li>
+            <li>Examine the Analysis tab to understand how the model extracts quantitative measurements</li>
+        </ol>
+    </div>
+
+    <div class="section">
+        <h2>Parameters Tab</h2>
+        <p>The Parameters tab allows you to configure the simulation settings:</p>
+        
+        <div class="image-placeholder">
+            [Parameters tab screenshot]
+        </div>
+        
+        <h3>Signal Parameters</h3>
+        <ul>
+            <li><strong>Response Amplitude</strong>: Set the true amplitude of the physiological response</li>
+            <li><strong>Noise Level</strong>: Adjust the amount of random noise in the signal</li>
+            <li><strong>Drift Amplitude</strong>: Set the magnitude of low-frequency drift</li>
+            <li><strong>Stimulus Timing</strong>: Configure the timing pattern of stimulus presentation</li>
+        </ul>
+        
+        <div class="tip">
+            <strong>Tip:</strong> Try different noise levels to see how they affect estimation accuracy. Start with low noise and gradually increase it to understand the robustness of the GLM approach.
+        </div>
+        
+        <h3>Suggested Parameter Experiments</h3>
+        <table>
+            <tr>
+                <th>Experiment</th>
+                <th>Settings</th>
+                <th>Purpose</th>
+            </tr>
+            <tr>
+                <td>Baseline</td>
+                <td>Default settings</td>
+                <td>Establish a reference point</td>
+            </tr>
+            <tr>
+                <td>High Noise</td>
+                <td>Increase noise level to maximum</td>
+                <td>Test robustness to noise</td>
+            </tr>
+            <tr>
+                <td>Strong Drift</td>
+                <td>Increase drift amplitude</td>
+                <td>Evaluate drift correction effectiveness</td>
+            </tr>
+            <tr>
+                <td>Optimal Design</td>
+                <td>Modify stimulus timing</td>
+                <td>Explore impact of experimental design</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>Display Tab</h2>
+        <p>The Display tab shows visualizations of the simulated data:</p>
+        
+        <div class="image-placeholder">
+            [Display tab screenshot]
+        </div>
+        
+        <h3>Signal Visualization</h3>
+        <ul>
+            <li><strong>Raw Signal</strong>: The complete signal including response, noise, and drift</li>
+            <li><strong>Model Fit</strong>: The fitted model overlaid on the raw data</li>
+            <li><strong>Residuals</strong>: The difference between the data and the model fit</li>
+            <li><strong>Components</strong>: Individual components of the signal (response, drift, etc.)</li>
+        </ul>
+        
+        <div class="note">
+            <strong>Note:</strong> The display shows both the true signal (known from the simulation parameters) and the estimated signal (derived from the GLM analysis). Comparing these helps you understand estimation accuracy.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Analysis Tab</h2>
+        <p>The Analysis tab provides detailed results from the quantitative analysis:</p>
+        
+        <div class="image-placeholder">
+            [Analysis tab screenshot]
+        </div>
+        
+        <h3>Quantitative Results</h3>
+        <ul>
+            <li><strong>True Amplitude</strong>: The actual amplitude used in the simulation</li>
+            <li><strong>Estimated Amplitude</strong>: The amplitude recovered through GLM analysis</li>
+            <li><strong>Estimation Error</strong>: The difference between true and estimated values</li>
+            <li><strong>Statistical Significance</strong>: Measures of confidence in the estimates</li>
+        </ul>
+        
+        <h3>Understanding the General Linear Model</h3>
+        <p>The GLM approach used in MRIQuantSim:</p>
+        <ol>
+            <li>Creates a design matrix based on the expected response shape and potential confounds (like drift)</li>
+            <li>Performs a least-squares fit of this model to the data</li>
+            <li>Extracts parameter estimates that represent the amplitude of each component</li>
+            <li>Calculates statistical measures of confidence in these estimates</li>
+        </ol>
+        
+        <div class="tip">
+            <strong>Tip:</strong> Explore how the shape of the response function affects estimation accuracy. The better your model matches the true underlying signal, the more accurate your estimates will be.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Advanced Features</h2>
+        
+        <h3>Experimental Design Optimization</h3>
+        <p>The timing and pattern of stimuli significantly impact estimation accuracy. Experiment with different stimulus designs to see how they affect the results.</p>
+        
+        <h3>Signal Processing Options</h3>
+        <p>MRIQuantSim includes options for preprocessing signals before analysis:</p>
+        <ul>
+            <li><strong>Filtering</strong>: Remove specific frequency components</li>
+            <li><strong>Detrending</strong>: Remove linear or polynomial trends</li>
+            <li><strong>Windowing</strong>: Focus analysis on specific time periods</li>
+        </ul>
+        
+        <div class="note">
+            <strong>Note:</strong> While preprocessing can improve results in some cases, the GLM approach often performs well even with minimal preprocessing when properly configured.
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Troubleshooting</h2>
+        
+        <h3>Poor Estimation Accuracy</h3>
+        <p>If your estimates are far from the true values:</p>
+        <ul>
+            <li>Check that the noise level isn't too high</li>
+            <li>Ensure the drift model adequately captures the actual drift</li>
+            <li>Verify that the stimulus timing provides sufficient contrast</li>
+        </ul>
+        
+        <h3>Unrealistic Simulations</h3>
+        <p>For more realistic simulations:</p>
+        <ul>
+            <li>Use physiologically plausible parameter values</li>
+            <li>Add appropriate constraints to the model</li>
+            <li>Consider the temporal characteristics of real physiological systems</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>Further Learning</h2>
+        <p>To learn more about quantitative signal analysis in physiological measurements:</p>
+        <ul>
+            <li>Explore resources on general linear modeling in fMRI analysis</li>
+            <li>Study time series analysis techniques</li>
+            <li>Investigate physiological noise correction methods</li>
+        </ul>
+    </div>
 </body>
 </html>

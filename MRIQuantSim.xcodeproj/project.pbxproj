@@ -142,6 +142,7 @@
 				8A75564E2DA80057002A7962 /* Sources */,
 				8A75564F2DA80057002A7962 /* Frameworks */,
 				8A7556502DA80057002A7962 /* Resources */,
+				8AF71F002DAB31D9004EE1B3 /* Clear Help System Cache */,
 			);
 			buildRules = (
 			);
@@ -273,6 +274,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		8AF71F002DAB31D9004EE1B3 /* Clear Help System Cache */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Clear Help System Cache";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "#!/usr/bin/env bash\n\n# 📘 Smart Help Book Cache Management Script\n\n# This script:\n# - Computes a hash of your Help Book source files\n# - Only clears the Help Viewer cache if the contents have changed\n# - Does not require Xcode's dependency tracking or output files\n\nHELP_BOOK_DIR=\"${SRCROOT}/MRIQuantSimHelp.help\"\nCACHE_DIR=\"$HOME/Library/Group Containers/group.com.apple.helpviewer.content/Library/Caches\"\nCACHE_PREFIX=\"net.endoquant.MRIQuantSim.net.endoquant.MRIQuantSim.help\"\nSTAMP_FILE=\"$BUILD_DIR/help_cache_last_hash.txt\"\n\necho \"📘 [Help Cache Script] Checking for Help Book changes...\"\n\n# Compute a hash of the .html and .plist files in the .help bundle\nCURRENT_HASH=$(find \"$HELP_BOOK_DIR\" -type f \\( -name \"*.html\" -o -name \"*.plist\" \\) -exec md5 -q {} \\; | sort | md5)\n\n# Read previously saved hash\nif [[ -f \"$STAMP_FILE\" ]]; then\n  PREV_HASH=$(cat \"$STAMP_FILE\")\nelse\n  PREV_HASH=\"\"\nfi\n\n# Compare hashes and clear cache if different\nif [[ \"$CURRENT_HASH\" != \"$PREV_HASH\" ]]; then\n  echo \"🔁 Help Book has changed — clearing Help Viewer cache.\"\n\n  shopt -s nullglob\n  MATCHES=(\"$CACHE_DIR\"/\"$CACHE_PREFIX\"*)\n  shopt -u nullglob\n\n  if [ ${#MATCHES[@]} -eq 0 ]; then\n    echo \"✅ No cached Help Books found.\"\n  else\n    for path in \"${MATCHES[@]}\"; do\n      BASENAME=\"$(basename \"$path\")\"\n      DEST=\"$HOME/.Trash/${BASENAME}-$(date +%Y%m%d-%H%M%S)\"\n      echo \"🗑️  Moving cached Help Book → Trash: $DEST\"\n      mv \"$path\" \"$DEST\"\n    done\n  fi\n\n  echo \"🛑 Restarting Help Viewer cache daemon...\"\n  killall -9 helpd 2>/dev/null || echo \"ℹ️ helpd not running.\"\n\n  echo \"$CURRENT_HASH\" > \"$STAMP_FILE\"\n  echo \"✅ Cache cleared and hash updated.\"\nelse\n  echo \"✅ Help Book has not changed — skipping cache removal.\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		8A75564E2DA80057002A7962 /* Sources */ = {
