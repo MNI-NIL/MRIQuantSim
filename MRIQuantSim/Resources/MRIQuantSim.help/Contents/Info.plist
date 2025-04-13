@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleIdentifier</key>
+	<string>net.endoquant.MRIQuantSim.help</string>
+	<key>CFBundleName</key>
+	<string>MRIQuantSim</string>
+	<key>HPDBookAccessPath</key>
+	<string>index.html</string>
+	<key>HPDBookIndexPath</key>
+	<string>MRIQuantSim.helpindex</string>
+	<key>HPDBookTitle</key>
+	<string>MRIQuantSim Help</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0.0</string>
+	<key>CFBundleVersion</key>
+	<string>2.0.0</string>
+	<key>HPDBookIconPath</key>
+	<string>shared/icon_32x32@2x.png</string>
+	<key>HPDBookKBProduct</key>
+	<string>mriquantsim2</string>
+	<key>HPDBookKBURL</key>
+	<string>https://github.com/MNI-NIL/MRIQuantSim</string>
+	<key>HPDBookRemoteURL</key>
+	<string/>
+	<key>HPDBookTopicListCSSPath</key>
+	<string/>
+	<key>HPDBookTopicListTemplatePath</key>
+	<string/>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleSignature</key>
+	<string>hbwr</string>
+	<key>HPDBookType</key>
+	<string>3</string>
+</dict>
+</plist>
