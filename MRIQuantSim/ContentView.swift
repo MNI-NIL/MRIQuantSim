@@ -162,6 +162,18 @@ class SimulationController: ObservableObject {
         objectWillChange.send()
     }
     
+    // Method specifically for randomizing CO2 variance phase
+    func randomizeCO2VariancePhase() {
+        simulationData.randomizeCO2VariancePhase(parameters: parameters)
+        
+        // Update parameter state after regeneration
+        previousParamState = parameters.getParameterState()
+        
+        // Force UI refresh
+        viewRefreshTrigger += 1
+        objectWillChange.send()
+    }
+    
     // Method to explicitly force view refresh without parameter change
     func forceViewRefresh() {
         viewRefreshTrigger += 1
@@ -217,7 +229,8 @@ struct ContentView: View {
                 ParametersTabView(
                     parameters: $simulator.parameters,
                     onParameterChanged: simulator.parameterChanged,
-                    onRegenerateNoise: simulator.regenerateMRINoise
+                    onRegenerateNoise: simulator.regenerateMRINoise,
+                    onRandomizeCO2VariancePhase: simulator.randomizeCO2VariancePhase
                 )
                 .tabItem {
                     Label("Signal", systemImage: "waveform")

@@ -97,6 +97,7 @@ struct ParametersTabView: View {
     @Binding var parameters: SimulationParameters
     var onParameterChanged: () -> Void
     var onRegenerateNoise: (() -> Void)? = nil  // Optional callback for noise regeneration
+    var onRandomizeCO2VariancePhase: (() -> Void)? = nil  // Optional callback for CO2 variance phase randomization
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -166,6 +167,33 @@ struct ParametersTabView: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                         .disabled(!parameters.enableMRINoise)
+                        
+                        if parameters.enableCO2Variance {
+                            Divider()
+                                .padding(.vertical, 8)
+                            
+                            Text("Randomize the phase of the CO₂ variance waveform.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                                .padding(.bottom, 8)
+                            
+                            Button(action: {
+                                // Call the randomizeCO2VariancePhase handler from ContentView
+                                onRandomizeCO2VariancePhase?()
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.triangle.2.circlepath")
+                                    Text("Regenerate CO₂ Variance")
+                                }
+                                .padding(.vertical, 6)
+                                .padding(.horizontal, 12)
+                                .background(Color.accentColor)
+                                .foregroundColor(.white)
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .disabled(!parameters.enableCO2Variance)
+                        }
                     }
                 }
                 
