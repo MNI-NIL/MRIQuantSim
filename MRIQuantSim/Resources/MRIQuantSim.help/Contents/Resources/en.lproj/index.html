@@ -158,8 +158,18 @@
             <li><strong>Stimulus Timing</strong>: Configure the timing pattern of stimulus presentation</li>
         </ul>
         
+        <h3>Noise and Variance Controls</h3>
+        <ul>
+            <li><strong>CO₂ Variance</strong>: Enable/disable variability in the respiratory CO₂ signal</li>
+            <li><strong>CO₂ Variance Frequency</strong>: Set the frequency of the variance waveform</li>
+            <li><strong>CO₂ Frequency/Amplitude Variance</strong>: Control the extent of variation</li>
+            <li><strong>Regenerate CO₂ Variance</strong>: Reset the phase of the variance waveform to a new random value</li>
+            <li><strong>MRI Noise</strong>: Enable/disable random noise in the MRI signal</li>
+            <li><strong>Regenerate MRI Noise</strong>: Create a new random noise pattern while maintaining statistical properties</li>
+        </ul>
+        
         <div class="tip">
-            <strong>Tip:</strong> Try different noise levels to see how they affect estimation accuracy. Start with low noise and gradually increase it to understand the robustness of the GLM approach.
+            <strong>Tip:</strong> Try different noise levels to see how they affect estimation accuracy. The "Randomize" buttons allow you to generate different noise patterns without changing the overall statistical properties, which is useful for testing the robustness of your analysis.
         </div>
         
         <h3>Suggested Parameter Experiments</h3>
