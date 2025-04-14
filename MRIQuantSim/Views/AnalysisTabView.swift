@@ -87,49 +87,107 @@ struct AnalysisTabView: View {
                 // Only show time constants if exponential is selected
                 if parameters.analysisModelType == .exponential {
                     VStack(alignment: .leading, spacing: 10) {
-                        // Rise time constant
-                        HStack(spacing: 15) {
+                        // Rise time constant with slider
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("Rise Time Constant (s)")
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                             
-                            TextField("", value: $parameters.analysisRiseTimeConstant, format: .number)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                .padding(8)
-                                .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
-                                .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
-                                .cornerRadius(6)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            HStack(spacing: 12) {
+                                // Slider with appropriate range and step
+                                Slider(
+                                    value: $parameters.analysisRiseTimeConstant,
+                                    in: 1.0...30.0,
+                                    step: 1.0
                                 )
-                                .onSubmit { 
-                                    onParameterChanged() 
+                                .onChange(of: parameters.analysisRiseTimeConstant) { _, _ in
+                                    onParameterChanged()
                                     onForceRefresh() // Force immediate refresh
                                 }
+                                
+                                // Text field for precise input
+                                TextField("", value: $parameters.analysisRiseTimeConstant, format: .number)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 70)
+                                    .padding(6)
+                                    .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                    .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                    .cornerRadius(6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
+                                    .onSubmit { 
+                                        onParameterChanged() 
+                                        onForceRefresh() // Force immediate refresh
+                                    }
+                                
+                                // Reset button - to the right of the text field
+                                Button(action: {
+                                    parameters.analysisRiseTimeConstant = 10.0 // Default value
+                                    onParameterChanged()
+                                    onForceRefresh()
+                                }) {
+                                    Image(systemName: "arrow.counterclockwise")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.accentColor)
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                                .help("Reset to default value")
+                            }
                         }
+                        .padding(.vertical, 4)
                         
-                        // Fall time constant
-                        HStack(spacing: 15) {
+                        // Fall time constant with slider
+                        VStack(alignment: .leading, spacing: 6) {
                             Text("Fall Time Constant (s)")
-                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                             
-                            TextField("", value: $parameters.analysisFallTimeConstant, format: .number)
-                                .multilineTextAlignment(.trailing)
-                                .frame(width: 80)
-                                .padding(8)
-                                .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
-                                .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
-                                .cornerRadius(6)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                            HStack(spacing: 12) {
+                                // Slider with appropriate range and step
+                                Slider(
+                                    value: $parameters.analysisFallTimeConstant,
+                                    in: 1.0...30.0,
+                                    step: 1.0
                                 )
-                                .onSubmit { 
-                                    onParameterChanged() 
+                                .onChange(of: parameters.analysisFallTimeConstant) { _, _ in
+                                    onParameterChanged()
                                     onForceRefresh() // Force immediate refresh
                                 }
+                                
+                                // Text field for precise input
+                                TextField("", value: $parameters.analysisFallTimeConstant, format: .number)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 70)
+                                    .padding(6)
+                                    .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                    .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                    .cornerRadius(6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
+                                    .onSubmit { 
+                                        onParameterChanged() 
+                                        onForceRefresh() // Force immediate refresh
+                                    }
+                                
+                                // Reset button - to the right of the text field
+                                Button(action: {
+                                    parameters.analysisFallTimeConstant = 5.0 // Default value
+                                    onParameterChanged()
+                                    onForceRefresh()
+                                }) {
+                                    Image(systemName: "arrow.counterclockwise")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.accentColor)
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                                .help("Reset to default value")
+                            }
                         }
+                        .padding(.vertical, 4)
                         
                         // Copy from simulation button
                         HStack {
@@ -197,26 +255,142 @@ struct AnalysisTabView: View {
     
     private var modelResultsSection: some View {
         CollapsibleSection(title: "Model Results", sectionId: "model_results") {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Text("Percent Change:")
-                        .bold()
-                    Spacer()
-                    Text(String(format: "%.2f%%", simulationData.percentChangeMetric))
-                        .font(.headline)
-                }
-                .padding(.bottom, 4)
-                
-                // Add an ID based on the parameters to force refresh when model terms change
-                ForEach(Array(simulationData.betaParams.enumerated()), id: \.offset) { index, value in
+            VStack(spacing: 16) {
+                // Results card - more compact, well-aligned view
+                VStack(spacing: 0) {
+                    // Header with accent color background
                     HStack {
-                        Text(betaParamName(index: index))
+                        Text("Model Fit Results")
+                            .font(.headline)
+                            .foregroundColor(.white)
                         Spacer()
-                        Text(String(format: "%.2f", value))
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.accentColor)
+                    
+                    // Results table
+                    VStack(spacing: 0) {
+                        // Headers
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Parameter")
+                                .frame(width: 150, alignment: .leading)
+                            Spacer()
+                            Text("Estimated")
+                                .frame(width: 100, alignment: .trailing)
+                            Text("True Value")
+                                .frame(width: 100, alignment: .trailing)
+                        }
+                        .font(.subheadline.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(white: colorScheme == .dark ? 0.2 : 0.95))
+                        
+                        Divider()
+                        
+                        // Percent Change row
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("BOLD % Change")
+                                .font(.subheadline)
+                                .frame(width: 150, alignment: .leading)
+                            Spacer()
+                            Text(String(format: "%.2f%%", simulationData.percentChangeMetric))
+                                .foregroundColor(.primary)
+                                .frame(width: 100, alignment: .trailing)
+                            Text(String(format: "%.2f%%", 
+                                       (parameters.mriResponseAmplitude / parameters.mriBaselineSignal) * 100.0))
+                                .foregroundColor(.green)
+                                .frame(width: 100, alignment: .trailing)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(white: colorScheme == .dark ? 0.15 : 1.0))
+                        
+                        // Model parameter rows
+                        ForEach(Array(simulationData.betaParams.enumerated()), id: \.offset) { index, value in
+                            Divider()
+                            
+                            HStack(alignment: .firstTextBaseline) {
+                                Text(betaParamName(index: index))
+                                    .font(.subheadline)
+                                    .frame(width: 150, alignment: .leading)
+                                Spacer()
+                                Text(String(format: "%.2f", value))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 100, alignment: .trailing)
+                                // Get the true value based on parameter type
+                                Group {
+                                    if index == 0 {
+                                        // Stimulus response
+                                        Text(String(format: "%.2f", parameters.mriResponseAmplitude))
+                                            .foregroundColor(.green)
+                                    } else if index == 1 && parameters.includeConstantTerm {
+                                        // Constant term (baseline)
+                                        Text(String(format: "%.2f", parameters.mriBaselineSignal))
+                                            .foregroundColor(.green)
+                                    } else if parameters.enableMRIDrift && parameters.includeLinearTerm && 
+                                             betaParamName(index: index) == "Linear Drift" {
+                                        // Linear drift
+                                        let trueLinearDrift = parameters.mriLinearDrift * parameters.mriBaselineSignal / 100.0
+                                        Text(String(format: "%.2f", trueLinearDrift))
+                                            .foregroundColor(.green)
+                                    } else if parameters.enableMRIDrift && parameters.includeQuadraticTerm && 
+                                             betaParamName(index: index) == "Quadratic Drift" {
+                                        // Quadratic drift
+                                        let trueQuadDrift = parameters.mriQuadraticDrift * parameters.mriBaselineSignal / 100.0
+                                        Text(String(format: "%.2f", trueQuadDrift))
+                                            .foregroundColor(.green)
+                                    } else if parameters.enableMRIDrift && parameters.includeCubicTerm && 
+                                             betaParamName(index: index) == "Cubic Drift" {
+                                        // Cubic drift
+                                        let trueCubicDrift = parameters.mriCubicDrift * parameters.mriBaselineSignal / 100.0
+                                        Text(String(format: "%.2f", trueCubicDrift))
+                                            .foregroundColor(.green)
+                                    } else {
+                                        // For other parameters, just use a placeholder to maintain alignment
+                                        Text("-")
+                                            .foregroundColor(.secondary.opacity(0.5))
+                                    }
+                                }
+                                .frame(width: 100, alignment: .trailing)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(index % 2 == 0 ? 
+                                    Color(white: colorScheme == .dark ? 0.17 : 0.97) : 
+                                    Color(white: colorScheme == .dark ? 0.15 : 1.0))
+                        }
                     }
                 }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
+                )
                 .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisRiseTimeConstant)-\(parameters.analysisFallTimeConstant)")
+                
+                // Model Information tooltip
+                HStack {
+                    Spacer()
+                    
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Text("Note: Green values show the true parameters from the simulation.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.top, 4)
             }
+        }
+    }
+    
+    // Alternate approach for macOS without UIKit dependencies
+    private var headerBackground: some View {
+        VStack(spacing: 0) {
+            Color.accentColor
+                .frame(height: 8)
+            Color.clear
         }
     }
     
