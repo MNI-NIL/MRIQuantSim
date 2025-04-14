@@ -21,7 +21,7 @@ enum FIRResponseMethod: String, Codable, CaseIterable {
     case maximum = "Maximum Value"
     case mean = "Mean Value"
     case meanPositive = "Mean of Positive Values"
-    // case timeWindow = "Time Window" - Requires custom parameters, will implement in future update
+    case timeWindow = "Time Window"
 }
 
 @Model
@@ -61,6 +61,8 @@ final class SimulationParameters {
     var analysisFallTimeConstant: Double
     var analysisFIRCoverage: Double
     var analysisFIRResponseMethodString: String
+    var analysisFIRTimeWindowStart: Double // Start time for FIR time window method (seconds)
+    var analysisFIRTimeWindowEnd: Double // End time for FIR time window method (seconds)
     
     // Computed property for analysis model type
     @Transient
@@ -159,6 +161,8 @@ final class SimulationParameters {
         analysisFallTimeConstant = 5.0 // seconds
         analysisFIRCoverage = 90.0 // seconds - default FIR coverage duration
         analysisFIRResponseMethodString = FIRResponseMethod.maximum.rawValue // default to maximum FIR response method
+        analysisFIRTimeWindowStart = 10.0 // seconds - default start time for time window method
+        analysisFIRTimeWindowEnd = 30.0 // seconds - default end time for time window method
         
         // Noise Parameters
         co2VarianceFrequency = 0.05 // Hz
@@ -222,6 +226,8 @@ final class SimulationParameters {
         analysisFallTimeConstant = defaults.analysisFallTimeConstant
         analysisFIRCoverage = defaults.analysisFIRCoverage
         analysisFIRResponseMethodString = defaults.analysisFIRResponseMethodString
+        analysisFIRTimeWindowStart = defaults.analysisFIRTimeWindowStart
+        analysisFIRTimeWindowEnd = defaults.analysisFIRTimeWindowEnd
         
         // Noise Parameters
         co2VarianceFrequency = defaults.co2VarianceFrequency
@@ -274,6 +280,10 @@ final class SimulationParameters {
         // FIR Model Parameters
         case "FIR Coverage Duration (s)":
             return ParameterMetadata(defaultValue: 90.0, minValue: 30.0, maxValue: 150.0, step: 10.0)
+        case "FIR Time Window Start (s)":
+            return ParameterMetadata(defaultValue: 10.0, minValue: 0.0, maxValue: 150.0, step: 1.0)
+        case "FIR Time Window End (s)":
+            return ParameterMetadata(defaultValue: 30.0, minValue: 0.0, maxValue: 150.0, step: 1.0)
         // Signal Parameters
         case "CO₂ Sampling Rate (Hz)":
             return ParameterMetadata(defaultValue: 10.0, minValue: 1.0, maxValue: 20.0, step: 1.0)
@@ -383,6 +393,8 @@ final class SimulationParameters {
             analysisFallTimeConstant: analysisFallTimeConstant,
             analysisFIRCoverage: analysisFIRCoverage,
             analysisFIRResponseMethodString: analysisFIRResponseMethodString,
+            analysisFIRTimeWindowStart: analysisFIRTimeWindowStart,
+            analysisFIRTimeWindowEnd: analysisFIRTimeWindowEnd,
             
             // Model terms
             includeConstantTerm: includeConstantTerm,
@@ -423,6 +435,8 @@ struct ParameterState: Equatable {
     let analysisFallTimeConstant: Double
     let analysisFIRCoverage: Double
     let analysisFIRResponseMethodString: String
+    let analysisFIRTimeWindowStart: Double
+    let analysisFIRTimeWindowEnd: Double
     
     // Computed properties for convenience
     var responseShapeType: ResponseShapeType {
@@ -561,7 +575,9 @@ struct ParameterState: Equatable {
             analysisRiseTimeConstant != previous.analysisRiseTimeConstant ||
             analysisFallTimeConstant != previous.analysisFallTimeConstant ||
             analysisFIRCoverage != previous.analysisFIRCoverage ||
-            analysisFIRResponseMethodString != previous.analysisFIRResponseMethodString;
+            analysisFIRResponseMethodString != previous.analysisFIRResponseMethodString ||
+            analysisFIRTimeWindowStart != previous.analysisFIRTimeWindowStart ||
+            analysisFIRTimeWindowEnd != previous.analysisFIRTimeWindowEnd;
             
         // And all other parameters remain the same
         return analysisParamsChanged &&

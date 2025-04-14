@@ -302,6 +302,99 @@ struct AnalysisTabView: View {
                         }
                         .padding(.vertical, 4)
                         
+                        // Time Window parameters (only show when Time Window method is selected)
+                        if parameters.analysisFIRResponseMethod == .timeWindow {
+                            VStack(alignment: .leading, spacing: 10) {
+                                // Time Window Start with slider
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Window Start Time (s)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    HStack(spacing: 12) {
+                                        // Slider with range from 0 to coverage duration
+                                        Slider(
+                                            value: $parameters.analysisFIRTimeWindowStart,
+                                            in: 0...parameters.analysisFIRCoverage,
+                                            step: 1.0
+                                        )
+                                        .onChange(of: parameters.analysisFIRTimeWindowStart) { _, newValue in
+                                            // Ensure start time is before end time
+                                            if newValue >= parameters.analysisFIRTimeWindowEnd {
+                                                parameters.analysisFIRTimeWindowEnd = min(newValue + 1.0, parameters.analysisFIRCoverage)
+                                            }
+                                            onParameterChanged()
+                                            onForceRefresh() // Force immediate refresh
+                                        }
+                                        
+                                        // Text field for precise input
+                                        TextField("", value: $parameters.analysisFIRTimeWindowStart, format: .number)
+                                            .multilineTextAlignment(.trailing)
+                                            .frame(width: 70)
+                                            .padding(6)
+                                            .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                            .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                            .cornerRadius(6)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                            )
+                                            .onSubmit { 
+                                                // Ensure start time is valid
+                                                parameters.analysisFIRTimeWindowStart = max(0, min(parameters.analysisFIRTimeWindowStart, parameters.analysisFIRCoverage))
+                                                // Ensure start time is before end time
+                                                if parameters.analysisFIRTimeWindowStart >= parameters.analysisFIRTimeWindowEnd {
+                                                    parameters.analysisFIRTimeWindowEnd = min(parameters.analysisFIRTimeWindowStart + 1.0, parameters.analysisFIRCoverage)
+                                                }
+                                                onParameterChanged() 
+                                                onForceRefresh() // Force immediate refresh
+                                            }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                                
+                                // Time Window End with slider
+                                VStack(alignment: .leading, spacing: 6) {
+                                    Text("Window End Time (s)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                    
+                                    HStack(spacing: 12) {
+                                        // Slider with range from start to coverage duration
+                                        Slider(
+                                            value: $parameters.analysisFIRTimeWindowEnd,
+                                            in: (parameters.analysisFIRTimeWindowStart + 1.0)...parameters.analysisFIRCoverage,
+                                            step: 1.0
+                                        )
+                                        .onChange(of: parameters.analysisFIRTimeWindowEnd) { _, _ in
+                                            onParameterChanged()
+                                            onForceRefresh() // Force immediate refresh
+                                        }
+                                        
+                                        // Text field for precise input
+                                        TextField("", value: $parameters.analysisFIRTimeWindowEnd, format: .number)
+                                            .multilineTextAlignment(.trailing)
+                                            .frame(width: 70)
+                                            .padding(6)
+                                            .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                            .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                            .cornerRadius(6)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                            )
+                                            .onSubmit { 
+                                                // Ensure end time is valid
+                                                parameters.analysisFIRTimeWindowEnd = max(parameters.analysisFIRTimeWindowStart + 1.0, min(parameters.analysisFIRTimeWindowEnd, parameters.analysisFIRCoverage))
+                                                onParameterChanged() 
+                                                onForceRefresh() // Force immediate refresh
+                                            }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                        
                         // Information about FIR model
                         Text("The FIR model uses separate regressors for each time point after stimulus onset, allowing flexible modeling of the hemodynamic response shape. The coverage duration determines how far the model extends after stimulus onset. The response method controls how the overall response magnitude is calculated from individual FIR coefficients.")
                             .font(.caption)

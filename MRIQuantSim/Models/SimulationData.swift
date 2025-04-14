@@ -8,6 +8,24 @@
 import Foundation
 import SwiftUI
 
+// Structure for time window marker visualization
+struct TimeWindowMarker {
+    let blockStartTime: Double  // When the block starts
+    let startOffset: Double     // Window start offset from block start
+    let endOffset: Double       // Window end offset from block start
+    let color: Color            // Color of the marker
+    let opacity: Double         // Opacity of the marker
+    
+    init(blockStartTime: Double, startOffset: Double, endOffset: Double, 
+         color: Color = .blue, opacity: Double = 0.2) {
+        self.blockStartTime = blockStartTime
+        self.startOffset = startOffset
+        self.endOffset = endOffset
+        self.color = color
+        self.opacity = opacity
+    }
+}
+
 // Model structure for time series data
 struct TimeSeriesData: Identifiable {
     let id = UUID()
@@ -21,6 +39,7 @@ struct TimeSeriesData: Identifiable {
     let symbolSize: Double
     var showConnectingLine: Bool
     let connectingLineColor: Color?
+    var timeWindowMarkers: [TimeWindowMarker]?
     
     init(
         title: String,
@@ -32,7 +51,8 @@ struct TimeSeriesData: Identifiable {
         lineWidth: Double = 2.0,
         symbolSize: Double = 30.0,
         showConnectingLine: Bool = true,
-        connectingLineColor: Color? = nil
+        connectingLineColor: Color? = nil,
+        timeWindowMarkers: [TimeWindowMarker]? = nil
     ) {
         self.title = title
         self.xValues = xValues
@@ -44,6 +64,7 @@ struct TimeSeriesData: Identifiable {
         self.symbolSize = symbolSize
         self.showConnectingLine = showConnectingLine
         self.connectingLineColor = connectingLineColor
+        self.timeWindowMarkers = timeWindowMarkers
     }
 }
 
@@ -180,7 +201,7 @@ class SimulationData: ObservableObject {
     }
     
     // Set the FIR response method to use (from a string method name)
-    func setFIRResponseMethod(methodName: String) {
+    func setFIRResponseMethod(methodName: String, timeWindowStart: Double = 10.0, timeWindowEnd: Double = 30.0) {
         // Map from string to our internal enum
         if methodName == "Maximum Value" {
             firResponseMethod = .maximum
@@ -188,6 +209,9 @@ class SimulationData: ObservableObject {
             firResponseMethod = .mean
         } else if methodName == "Mean of Positive Values" {
             firResponseMethod = .meanPositive
+        } else if methodName == "Time Window" {
+            // For Time Window method, use provided start and end times
+            firResponseMethod = .timeWindow(start: timeWindowStart, end: timeWindowEnd)
         } else {
             // Default to maximum if method not recognized
             firResponseMethod = .maximum
@@ -241,6 +265,34 @@ class SimulationData: ObservableObject {
     func getMRISeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
         var seriesData: [TimeSeriesData] = []
         
+        // Create time window markers if using FIR time window method
+        var timeWindowMarkers: [TimeWindowMarker]? = nil
+        if parameters.analysisModelType == .fir && parameters.analysisFIRResponseMethod == .timeWindow {
+            timeWindowMarkers = []
+            
+            // Find block onset times (for odd-numbered blocks which are the stimulus blocks)
+            let blockDuration = 60.0 // 1 minute blocks
+            let totalDuration = 300.0 // 5 minutes total
+            
+            // Calculate block start times
+            for blockNumber in 0...4 { // 5 blocks in 5 minutes (0-based indexing)
+                let blockStartTime = Double(blockNumber) * blockDuration
+                
+                // Only add markers for stimulus blocks (odd-numbered blocks)
+                if blockNumber % 2 == 1 && blockStartTime < totalDuration {
+                    timeWindowMarkers?.append(
+                        TimeWindowMarker(
+                            blockStartTime: blockStartTime,
+                            startOffset: parameters.analysisFIRTimeWindowStart,
+                            endOffset: parameters.analysisFIRTimeWindowEnd,
+                            color: .blue,
+                            opacity: 0.15
+                        )
+                    )
+                }
+            }
+        }
+        
         // Raw MRI signal
         if !mriTimePoints.isEmpty && !mriRawSignal.isEmpty {
             let count = min(mriTimePoints.count, mriRawSignal.count)
@@ -249,7 +301,8 @@ class SimulationData: ObservableObject {
                 xValues: Array(mriTimePoints.prefix(count)),
                 yValues: Array(mriRawSignal.prefix(count)),
                 color: .blue,
-                isVisible: parameters.showMRIRaw
+                isVisible: parameters.showMRIRaw,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -261,7 +314,8 @@ class SimulationData: ObservableObject {
                 xValues: Array(mriTimePoints.prefix(count)),
                 yValues: Array(mriModeledSignal.prefix(count)),
                 color: .orange,
-                isVisible: parameters.showModelOverlay
+                isVisible: parameters.showModelOverlay,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -273,7 +327,8 @@ class SimulationData: ObservableObject {
                 xValues: Array(mriTimePoints.prefix(count)),
                 yValues: Array(mriDetrendedSignal.prefix(count)),
                 color: .green,
-                isVisible: parameters.showMRIDetrended
+                isVisible: parameters.showMRIDetrended,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -287,7 +342,8 @@ class SimulationData: ObservableObject {
                 color: .purple,
                 showPoints: true,
                 isVisible: parameters.showResidualError,
-                symbolSize: 20
+                symbolSize: 20,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -1001,6 +1057,10 @@ class SimulationData: ObservableObject {
                 firResponseMethod = .mean
             } else if methodString == "Mean of Positive Values" {
                 firResponseMethod = .meanPositive
+            } else if methodString == "Time Window" {
+                // For Time Window method, use start and end times from parameters
+                firResponseMethod = .timeWindow(start: parameters.analysisFIRTimeWindowStart, 
+                                              end: parameters.analysisFIRTimeWindowEnd)
             } else {
                 // Default to maximum if method not recognized
                 firResponseMethod = .maximum
