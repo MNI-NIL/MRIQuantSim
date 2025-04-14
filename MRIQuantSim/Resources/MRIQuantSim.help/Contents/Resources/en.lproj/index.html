@@ -156,7 +156,7 @@
 
     <div class="section">
         <h2>About MRIQuantSim</h2>
-        <p>MRIQuantSim is designed to illustrate the challenges and solutions in extracting meaningful quantitative measurements from physiological data. The application focuses on two key examples:</p>
+        <p>MRIQuantSim is designed to illustrate the challenges and solutions in extracting meaningful quantitative measurements from physiological time series data. The application focuses on two key examples:</p>
         
         <ul>
             <li><strong>End-tidal CO<sub>2</sub> Estimation</strong>: Measuring the change in end-tidal CO<sub>2</sub> when breathing air with added CO<sub>2</sub>.</li>
@@ -269,10 +269,11 @@
             <li><strong>Model Fit</strong>: The fitted model overlaid on the raw data</li>
             <li><strong>Residuals</strong>: The difference between the data and the model fit</li>
             <li><strong>Components</strong>: Individual components of the signal (response, drift, etc.)</li>
+            <li><strong>Parameter Comparison Chart</strong>: Visual comparison between estimated (blue) and true (green) parameter values</li>
         </ul>
         
         <div class="note">
-            <strong>Note:</strong> The display shows both the true signal (known from the simulation parameters) and the estimated signal (derived from the GLM analysis). Comparing these helps you understand estimation accuracy.
+            <strong>Note:</strong> The display shows both the true signal (known from the simulation parameters) and the estimated signal (derived from the GLM analysis). The parameter comparison chart provides a direct visual comparison between the estimated values (blue) and true values (green) for all model parameters, making it easy to assess estimation accuracy at a glance.
         </div>
     </div>
 

@@ -76,11 +76,11 @@ struct CollapsibleSection<Content: View>: View {
             
             // Content that can collapse
             if isExpanded {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 12) {
                     content()
-                        .padding(.leading, 8)
                 }
-                .padding()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
                 .background(sectionBackgroundColor)
                 .transition(.move(edge: .top).combined(with: .opacity))
             }
@@ -112,8 +112,15 @@ struct ParametersTabView: View {
                 }
                 
                 CollapsibleSection(title: "Noise Parameters", sectionId: "noise_params") {
-                    Toggle("Enable CO₂ Variance", isOn: $parameters.enableCO2Variance)
-                        .onChange(of: parameters.enableCO2Variance) { _, _ in onParameterChanged() }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CO₂ Variance")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Enable", isOn: $parameters.enableCO2Variance)
+                            .onChange(of: parameters.enableCO2Variance) { _, _ in onParameterChanged() }
+                            .padding(.vertical, 4)
+                    }
                     
                     parameterRow(
                         title: "CO₂ Variance Frequency (Hz)",
@@ -133,8 +140,15 @@ struct ParametersTabView: View {
                         disabled: !parameters.enableCO2Variance
                     )
                     
-                    Toggle("Enable MRI Noise", isOn: $parameters.enableMRINoise)
-                        .onChange(of: parameters.enableMRINoise) { _, _ in onParameterChanged() }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MRI Noise")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Enable", isOn: $parameters.enableMRINoise)
+                            .onChange(of: parameters.enableMRINoise) { _, _ in onParameterChanged() }
+                            .padding(.vertical, 4)
+                    }
                     
                     parameterRow(
                         title: "MRI Noise Amplitude (a.u.)",
@@ -144,46 +158,25 @@ struct ParametersTabView: View {
                     
                     // Add regenerate noise button if the callback is provided
                     if let regenerateCallback = onRegenerateNoise {
-                        Divider()
-                            .padding(.vertical, 8)
-                        
-                        Text("Regenerate noise with new random values while keeping the same statistical properties.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.bottom, 8)
-                        
-                        Button(action: {
-                            regenerateCallback()
-                        }) {
-                            HStack {
-                                Image(systemName: "waveform.path")
-                                Text("Regenerate MRI Noise")
-                            }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 12)
-                            .background(Color.accentColor)
-                            .foregroundColor(.white)
-                            .cornerRadius(8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .disabled(!parameters.enableMRINoise)
-                        
-                        if parameters.enableCO2Variance {
+                        VStack(alignment: .leading, spacing: 6) {
                             Divider()
                                 .padding(.vertical, 8)
                             
-                            Text("Randomize the phase of the CO₂ variance waveform.")
+                            Text("Regenerate MRI Noise")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                
+                            Text("Generate new random values while keeping the same statistical properties.")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                                .padding(.bottom, 8)
+                                .padding(.bottom, 4)
                             
                             Button(action: {
-                                // Call the randomizeCO2VariancePhase handler from ContentView
-                                onRandomizeCO2VariancePhase?()
+                                regenerateCallback()
                             }) {
                                 HStack {
-                                    Image(systemName: "arrow.triangle.2.circlepath")
-                                    Text("Regenerate CO₂ Variance")
+                                    Image(systemName: "waveform.path")
+                                    Text("Regenerate")
                                 }
                                 .padding(.vertical, 6)
                                 .padding(.horizontal, 12)
@@ -192,14 +185,56 @@ struct ParametersTabView: View {
                                 .cornerRadius(8)
                             }
                             .buttonStyle(PlainButtonStyle())
-                            .disabled(!parameters.enableCO2Variance)
+                            .disabled(!parameters.enableMRINoise)
+                            .padding(.vertical, 4)
+                        }
+                        
+                        if parameters.enableCO2Variance {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Divider()
+                                    .padding(.vertical, 8)
+                                
+                                Text("Regenerate CO₂ Variance")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    
+                                Text("Randomize the phase of the CO₂ variance waveform.")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                    .padding(.bottom, 4)
+                                
+                                Button(action: {
+                                    // Call the randomizeCO2VariancePhase handler from ContentView
+                                    onRandomizeCO2VariancePhase?()
+                                }) {
+                                    HStack {
+                                        Image(systemName: "arrow.triangle.2.circlepath")
+                                        Text("Regenerate")
+                                    }
+                                    .padding(.vertical, 6)
+                                    .padding(.horizontal, 12)
+                                    .background(Color.accentColor)
+                                    .foregroundColor(.white)
+                                    .cornerRadius(8)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                .disabled(!parameters.enableCO2Variance)
+                                .padding(.vertical, 4)
+                            }
                         }
                     }
                 }
                 
                 CollapsibleSection(title: "Drift Parameters", sectionId: "drift_params") {
-                    Toggle("Enable CO₂ Drift", isOn: $parameters.enableCO2Drift)
-                        .onChange(of: parameters.enableCO2Drift) { _, _ in onParameterChanged() }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("CO₂ Drift")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Enable", isOn: $parameters.enableCO2Drift)
+                            .onChange(of: parameters.enableCO2Drift) { _, _ in onParameterChanged() }
+                            .padding(.vertical, 4)
+                    }
                     
                     parameterRow(
                         title: "CO₂ Linear Drift (mmHg)",
@@ -219,8 +254,15 @@ struct ParametersTabView: View {
                         disabled: !parameters.enableCO2Drift
                     )
                     
-                    Toggle("Enable MRI Drift", isOn: $parameters.enableMRIDrift)
-                        .onChange(of: parameters.enableMRIDrift) { _, _ in onParameterChanged() }
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("MRI Drift")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Toggle("Enable", isOn: $parameters.enableMRIDrift)
+                            .onChange(of: parameters.enableMRIDrift) { _, _ in onParameterChanged() }
+                            .padding(.vertical, 4)
+                    }
                     
                     parameterRow(
                         title: "MRI Linear Drift (%)",
@@ -249,7 +291,7 @@ struct ParametersTabView: View {
                     Divider().padding(.vertical, 8)
                     
                     // Response shape picker
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 6) {
                         Text("Response Shape")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -261,7 +303,7 @@ struct ParametersTabView: View {
                         }
                         .pickerStyle(SegmentedPickerStyle())
                         .onChange(of: parameters.responseShapeType) { _, _ in onParameterChanged() }
-                        .padding(.bottom, 4)
+                        .padding(.vertical, 4)
                     }
                     
                     // Only show time constants if exponential is selected
@@ -269,38 +311,155 @@ struct ParametersTabView: View {
                         parameterRow(title: "Rise Time Constant (s)", value: $parameters.responseRiseTimeConstant)
                         parameterRow(title: "Fall Time Constant (s)", value: $parameters.responseFallTimeConstant)
                         
-                        Text("Time constants control the speed of transition at the beginning (rise) and end (fall) of each response block.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.top, 4)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Time Constants")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Text("Control the speed of transition at the beginning (rise) and end (fall) of each response block.")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.top, 8)
                     }
                 }
                 
                 // Display options have been moved to a dedicated Display tab
             }
-            .padding()
+            .padding(.vertical)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity)
     }
     
     private func parameterRow(title: String, value: Binding<Double>, disabled: Bool = false) -> some View {
-        HStack(spacing: 15) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .frame(maxWidth: .infinity, alignment: .leading)
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             
-            TextField("", value: value, format: .number)
-                .multilineTextAlignment(.trailing)
-                .frame(width: 80)
-                .padding(8)
-                .background(textFieldBackgroundColor)
-                .foregroundColor(textFieldTextColor)
-                .cornerRadius(6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+            HStack(spacing: 12) {
+                // Slider with appropriate range based on parameter type
+                Slider(
+                    value: value,
+                    in: getRange(for: title),
+                    step: getStep(for: title)
                 )
-                // Use onSubmit instead of onChange to update only when editing is completed
-                .onSubmit { onParameterChanged() }
+                .onChange(of: value.wrappedValue) { _, _ in 
+                    // Use a debounce approach for sliders to avoid excessive updates
+                    onParameterChanged()
+                }
                 .disabled(disabled)
+                
+                // Text field for precise input
+                TextField("", value: value, format: .number)
+                    .multilineTextAlignment(.trailing)
+                    .frame(width: 70)
+                    .padding(6)
+                    .background(textFieldBackgroundColor)
+                    .foregroundColor(textFieldTextColor)
+                    .cornerRadius(6)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 6)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    .onSubmit { onParameterChanged() }
+                    .disabled(disabled)
+                
+                // Reset button - now next to the text field
+                Button(action: {
+                    // Get default value from parameters
+                    let defaultValue = parameters.getDefaultValue(forParameter: title)
+                    // Update the value
+                    value.wrappedValue = defaultValue
+                    // Notify of parameter change
+                    onParameterChanged()
+                }) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 12))
+                        .foregroundColor(.accentColor)
+                }
+                .buttonStyle(BorderlessButtonStyle())
+                .disabled(disabled)
+                .help("Reset to default value")
+            }
+        }
+        .padding(.vertical, 4)
+    }
+    
+    // Helper functions to determine appropriate slider ranges based on parameter name
+    private func getRange(for parameterName: String) -> ClosedRange<Double> {
+        switch parameterName {
+        // Specific parameters with custom ranges
+        case "CO₂ Response Amplitude (mmHg)":
+            return 0.0...50.0
+        case "MRI Response Amplitude (a.u.)":
+            return 0.0...200.0
+        case "MRI Baseline Signal (a.u.)":
+            return 800.0...2000.0
+        case "CO₂ Sampling Rate (Hz)":
+            return 1.0...50.0
+        case "Breathing Rate (breaths/min)":
+            return 5.0...30.0
+        case "MRI Sampling Interval (s)":
+            return 0.5...10.0
+            
+        // General parameter types
+        case _ where parameterName.contains("Amplitude") && !parameterName.contains("Response"):
+            return 0.0...50.0
+        case _ where parameterName.contains("Noise"):
+            return 0.0...50.0
+        case _ where parameterName.contains("Drift"):
+            return -20.0...20.0
+        case _ where parameterName.contains("Time Constant"):
+            return 1.0...30.0
+        case _ where parameterName.contains("Breathing Rate"):
+            return 5.0...30.0
+        case _ where parameterName.contains("Sampling Rate"):
+            return 1.0...50.0
+        case _ where parameterName.contains("Interval"):
+            return 0.5...10.0
+        case _ where parameterName.contains("Frequency"):
+            return 0.05...1.0
+        case _ where parameterName.contains("Variance"):
+            return 0.0...10.0
+        default:
+            return 0.0...100.0
+        }
+    }
+    
+    private func getStep(for parameterName: String) -> Double {
+        switch parameterName {
+        // Specific parameters with custom step values
+        case "MRI Baseline Signal (a.u.)":
+            return 50.0
+        case "CO₂ Response Amplitude (mmHg)":
+            return 1.0
+        case "MRI Response Amplitude (a.u.)":
+            return 5.0
+            
+        // Parameter types
+        case _ where parameterName.contains("Frequency"):
+            return 0.05
+        case _ where parameterName.contains("Time Constant"):
+            return 1.0
+        case _ where parameterName.contains("Interval"):
+            return 0.5
+        case _ where parameterName.contains("Sampling"):
+            return 1.0
+        case _ where parameterName.contains("Breathing"):
+            return 1.0
+        case _ where parameterName.contains("Drift"):
+            return 2.0
+        case _ where parameterName.contains("Noise"):
+            return 2.0
+        case _ where parameterName.contains("Amplitude"):
+            return 5.0
+        case _ where parameterName.contains("Variance"):
+            return 0.5
+        default:
+            return 1.0
         }
     }
     
