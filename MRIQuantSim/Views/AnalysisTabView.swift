@@ -244,7 +244,15 @@ struct AnalysisTabView: View {
                                     in: metadata.minValue...metadata.maxValue,
                                     step: metadata.step
                                 )
-                                .onChange(of: parameters.analysisFIRCoverage) { _, _ in
+                                .onChange(of: parameters.analysisFIRCoverage) { _, newValue in
+                                    // When coverage changes, validate window parameters
+                                    // First ensure start time is valid for new coverage
+                                    parameters.analysisFIRTimeWindowStart = min(parameters.analysisFIRTimeWindowStart, newValue - 1.0)
+                                    // Then ensure end time is valid for new coverage and at least 1.0s after start time
+                                    parameters.analysisFIRTimeWindowEnd = min(
+                                        max(parameters.analysisFIRTimeWindowStart + 1.0, parameters.analysisFIRTimeWindowEnd),
+                                        newValue
+                                    )
                                     onParameterChanged()
                                     onForceRefresh() // Force immediate refresh
                                 }
@@ -312,15 +320,17 @@ struct AnalysisTabView: View {
                                         .foregroundColor(.secondary)
                                     
                                     HStack(spacing: 12) {
-                                        // Slider with range from 0 to coverage duration (without tick marks)
+                                        // Slider with range from 0 to coverage duration - 1.0 (to ensure there's room for the end time)
                                         Slider(
                                             value: $parameters.analysisFIRTimeWindowStart,
-                                            in: 0...parameters.analysisFIRCoverage
+                                            in: 0...(parameters.analysisFIRCoverage - 1.0)
                                         )
                                         .onChange(of: parameters.analysisFIRTimeWindowStart) { _, newValue in
-                                            // Ensure start time is before end time
-                                            if newValue >= parameters.analysisFIRTimeWindowEnd {
-                                                parameters.analysisFIRTimeWindowEnd = min(newValue + 1.0, parameters.analysisFIRCoverage)
+                                            // Ensure start time is valid
+                                            parameters.analysisFIRTimeWindowStart = max(0, min(newValue, parameters.analysisFIRCoverage - 1.0))
+                                            // Ensure start time is before end time with at least 1.0s gap
+                                            if parameters.analysisFIRTimeWindowStart >= parameters.analysisFIRTimeWindowEnd - 1.0 {
+                                                parameters.analysisFIRTimeWindowEnd = min(parameters.analysisFIRTimeWindowStart + 1.0, parameters.analysisFIRCoverage)
                                             }
                                             onParameterChanged()
                                             onForceRefresh() // Force immediate refresh
@@ -340,9 +350,9 @@ struct AnalysisTabView: View {
                                             )
                                             .onSubmit { 
                                                 // Ensure start time is valid
-                                                parameters.analysisFIRTimeWindowStart = max(0, min(parameters.analysisFIRTimeWindowStart, parameters.analysisFIRCoverage))
-                                                // Ensure start time is before end time
-                                                if parameters.analysisFIRTimeWindowStart >= parameters.analysisFIRTimeWindowEnd {
+                                                parameters.analysisFIRTimeWindowStart = max(0, min(parameters.analysisFIRTimeWindowStart, parameters.analysisFIRCoverage - 1.0))
+                                                // Ensure start time is before end time with at least 1.0s gap
+                                                if parameters.analysisFIRTimeWindowStart >= parameters.analysisFIRTimeWindowEnd - 1.0 {
                                                     parameters.analysisFIRTimeWindowEnd = min(parameters.analysisFIRTimeWindowStart + 1.0, parameters.analysisFIRCoverage)
                                                 }
                                                 onParameterChanged() 
@@ -351,7 +361,13 @@ struct AnalysisTabView: View {
                                             
                                         // Reset button
                                         Button(action: {
-                                            parameters.analysisFIRTimeWindowStart = parameters.getParameterMetadata(forParameter: "FIR Time Window Start (s)").defaultValue
+                                            let defaultStartTime = parameters.getParameterMetadata(forParameter: "FIR Time Window Start (s)").defaultValue
+                                            // Ensure default start time is valid for current coverage
+                                            parameters.analysisFIRTimeWindowStart = min(defaultStartTime, parameters.analysisFIRCoverage - 1.0)
+                                            // Ensure start time is before end time with at least 1.0s gap
+                                            if parameters.analysisFIRTimeWindowStart >= parameters.analysisFIRTimeWindowEnd - 1.0 {
+                                                parameters.analysisFIRTimeWindowEnd = min(parameters.analysisFIRTimeWindowStart + 30.0, parameters.analysisFIRCoverage)
+                                            }
                                             onParameterChanged()
                                             onForceRefresh()
                                         }) {
@@ -373,9 +389,10 @@ struct AnalysisTabView: View {
                                     
                                     HStack(spacing: 12) {
                                         // Slider with range from start to coverage duration (without tick marks)
+                                        // Ensure valid range by using max function to prevent lowerBound > upperBound
                                         Slider(
                                             value: $parameters.analysisFIRTimeWindowEnd,
-                                            in: (parameters.analysisFIRTimeWindowStart + 1.0)...parameters.analysisFIRCoverage
+                                            in: min((parameters.analysisFIRTimeWindowStart + 1.0), parameters.analysisFIRCoverage - 0.1)...parameters.analysisFIRCoverage
                                         )
                                         .onChange(of: parameters.analysisFIRTimeWindowEnd) { _, _ in
                                             onParameterChanged()
@@ -396,6 +413,9 @@ struct AnalysisTabView: View {
                                             )
                                             .onSubmit { 
                                                 // Ensure end time is valid
+                                                // First ensure start time is valid (in case it was changed by another control)
+                                                parameters.analysisFIRTimeWindowStart = max(0, min(parameters.analysisFIRTimeWindowStart, parameters.analysisFIRCoverage - 1.0))
+                                                // Then ensure end time is valid and at least 1.0s after start time
                                                 parameters.analysisFIRTimeWindowEnd = max(parameters.analysisFIRTimeWindowStart + 1.0, min(parameters.analysisFIRTimeWindowEnd, parameters.analysisFIRCoverage))
                                                 onParameterChanged() 
                                                 onForceRefresh() // Force immediate refresh
@@ -403,9 +423,11 @@ struct AnalysisTabView: View {
                                             
                                         // Reset button
                                         Button(action: {
-                                            parameters.analysisFIRTimeWindowEnd = parameters.getParameterMetadata(forParameter: "FIR Time Window End (s)").defaultValue
-                                            // Ensure end time is after start time
-                                            if parameters.analysisFIRTimeWindowEnd <= parameters.analysisFIRTimeWindowStart {
+                                            let defaultEndTime = parameters.getParameterMetadata(forParameter: "FIR Time Window End (s)").defaultValue
+                                            // Ensure default end time is valid for current coverage
+                                            parameters.analysisFIRTimeWindowEnd = min(defaultEndTime, parameters.analysisFIRCoverage)
+                                            // Ensure end time is after start time with at least 1.0s gap
+                                            if parameters.analysisFIRTimeWindowEnd <= parameters.analysisFIRTimeWindowStart + 1.0 {
                                                 parameters.analysisFIRTimeWindowStart = max(0, parameters.analysisFIRTimeWindowEnd - 30.0)
                                             }
                                             onParameterChanged()
