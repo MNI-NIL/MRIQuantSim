@@ -61,6 +61,8 @@ class SimulationData: ObservableObject {
     @Published var mriBlockPattern: [Double] = []
     @Published var betaParams: [Double] = []
     @Published var percentChangeMetric: Double = 0.0
+    @Published var signalToNoiseRatio: Double = 0.0
+    @Published var contrastToNoiseRatio: Double = 0.0
     
     // Store normalized noise values (mean 0, std 1) separately so they can be reused
     private var mriNormalizedNoiseValues: [Double] = []
@@ -699,6 +701,8 @@ class SimulationData: ObservableObject {
             mriDetrendedSignal = mriRawSignal  // Just use raw signal with no detrending
             betaParams = []
             percentChangeMetric = 0.0
+            signalToNoiseRatio = 0.0
+            contrastToNoiseRatio = 0.0
             return
         }
         
@@ -735,6 +739,8 @@ class SimulationData: ObservableObject {
             mriDetrendedSignal = mriRawSignal
             betaParams = []
             percentChangeMetric = 0.0
+            signalToNoiseRatio = 0.0
+            contrastToNoiseRatio = 0.0
             return
         }
         
@@ -786,6 +792,61 @@ class SimulationData: ObservableObject {
             // If no drift components, detrended signal equals raw signal
             mriDetrendedSignal = mriRawSignal
         }
+        
+        // Calculate SNR and CNR metrics
+        // Using RMS of residual error as noise
+        let noiseRMS = calculateRMS(mriResidualError)
+        
+        // Signal is the constant term (baseline signal)
+        var signal = 0.0
+        if parameters.includeConstantTerm && betaParams.count >= 2 {
+            signal = abs(betaParams[1]) // Second beta is constant term
+        }
+        
+        // Contrast is the first beta (response amplitude)
+        var contrast = 0.0
+        if !betaParams.isEmpty {
+            contrast = abs(betaParams[0]) // First beta is response amplitude
+        }
+        
+        // Calculate Signal-to-Noise Ratio (SNR)
+        if noiseRMS > 0 && signal > 0 {
+            signalToNoiseRatio = signal / noiseRMS
+        } else {
+            signalToNoiseRatio = 0.0
+        }
+        
+        // Calculate Contrast-to-Noise Ratio (CNR)
+        if noiseRMS > 0 && contrast > 0 {
+            contrastToNoiseRatio = contrast / noiseRMS
+        } else {
+            contrastToNoiseRatio = 0.0
+        }
+        
+        print("Model terms:")
+        print("  - Constant: \(parameters.includeConstantTerm)")
+        print("  - Linear: \(parameters.includeLinearTerm)")
+        print("  - Quadratic: \(parameters.includeQuadraticTerm)")
+        print("  - Cubic: \(parameters.includeCubicTerm)")
+        print("MRI Series count: \(mriRawSignal.count)")
+        print("Calculated metrics:")
+        print("  - Signal: \(signal)")
+        print("  - Contrast: \(contrast)")
+        print("  - Noise RMS: \(noiseRMS)")
+        print("  - SNR: \(signalToNoiseRatio)")
+        print("  - CNR: \(contrastToNoiseRatio)")
+        print("  - % Change: \(percentChangeMetric)")
+    }
+    
+    // Calculate Root Mean Square (RMS) of a data array
+    private func calculateRMS(_ data: [Double]) -> Double {
+        guard !data.isEmpty else { return 0.0 }
+        
+        let sumOfSquares = data.reduce(0.0) { sum, value in
+            return sum + (value * value)
+        }
+        
+        return sqrt(sumOfSquares / Double(data.count))
     }
     
     private func transposeMatrix(_ matrix: [[Double]]) -> [[Double]] {
