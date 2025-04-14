@@ -941,18 +941,44 @@ class SimulationData: ObservableObject {
         
         // Generate detrended signal by removing drift components
         mriDetrendedSignal = Array(repeating: 0.0, count: mriTimePoints.count)
-        if betaParams.count > 2 {
-            for i in 0..<mriTimePoints.count {
-                var trendComponents = 0.0
-                // Start from j=2 to skip stimulus and constant terms
-                for j in 2..<betaParams.count {
-                    trendComponents += betaParams[j] * X[i][j]
+        
+        if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+            // For FIR model, drift terms start after all FIR regressors plus constant term
+            // First determine starting index for drift terms
+            let driftStartIndex = firRegressorCount + (parameters.includeConstantTerm ? 1 : 0)
+            
+            // Check if we have any drift terms
+            if betaParams.count > driftStartIndex {
+                for i in 0..<mriTimePoints.count {
+                    var trendComponents = 0.0
+                    // Start from drift terms (after FIR regressors and constant)
+                    for j in driftStartIndex..<betaParams.count {
+                        trendComponents += betaParams[j] * X[i][j]
+                    }
+                    mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
                 }
-                mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
+                
+                print("FIR detrending: Removing drift components starting at index \(driftStartIndex)")
+            } else {
+                // If no drift components, detrended signal equals raw signal
+                mriDetrendedSignal = mriRawSignal
+                print("FIR detrending: No drift components found, detrended = raw")
             }
         } else {
-            // If no drift components, detrended signal equals raw signal
-            mriDetrendedSignal = mriRawSignal
+            // For non-FIR models (Boxcar or Exponential)
+            if betaParams.count > 2 {
+                for i in 0..<mriTimePoints.count {
+                    var trendComponents = 0.0
+                    // Start from j=2 to skip stimulus and constant terms
+                    for j in 2..<betaParams.count {
+                        trendComponents += betaParams[j] * X[i][j]
+                    }
+                    mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
+                }
+            } else {
+                // If no drift components, detrended signal equals raw signal
+                mriDetrendedSignal = mriRawSignal
+            }
         }
         
         // Calculate SNR and CNR metrics
