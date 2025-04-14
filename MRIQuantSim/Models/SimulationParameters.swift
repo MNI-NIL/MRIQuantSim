@@ -227,6 +227,80 @@ final class SimulationParameters {
         includeCubicTerm = defaults.includeCubicTerm
     }
     
+    // Function to get the default value for a specific parameter
+    func getDefaultValue(forParameter paramName: String) -> Double {
+        let defaults = SimulationParameters()
+        
+        switch paramName {
+        // Signal Parameters
+        case "CO₂ Sampling Rate (Hz)":
+            return defaults.co2SamplingRate
+        case "Breathing Rate (breaths/min)":
+            return defaults.breathingRate
+        case "MRI Sampling Interval (s)":
+            return defaults.mriSamplingInterval
+        case "MRI Baseline Signal (a.u.)":
+            return defaults.mriBaselineSignal
+        case "MRI Response Amplitude (a.u.)":
+            return defaults.mriResponseAmplitude
+        case "CO₂ Response Amplitude (mmHg)":
+            return defaults.co2ResponseAmplitude
+            
+        // Response Shape Parameters
+        case "Rise Time Constant (s)":
+            return defaults.responseRiseTimeConstant
+        case "Fall Time Constant (s)":
+            return defaults.responseFallTimeConstant
+            
+        // Noise Parameters
+        case "CO₂ Variance Frequency (Hz)":
+            return defaults.co2VarianceFrequency
+        case "CO₂ Frequency Variance":
+            return defaults.co2VarianceAmplitude
+        case "CO₂ Amplitude Variance (mmHg)":
+            return defaults.co2AmplitudeVariance
+        case "MRI Noise Amplitude (a.u.)":
+            return defaults.mriNoiseAmplitude
+            
+        // Drift Parameters - CO2
+        case "CO₂ Linear Drift (mmHg)":
+            return defaults.co2LinearDrift
+        case "CO₂ Quadratic Drift (mmHg)":
+            return defaults.co2QuadraticDrift
+        case "CO₂ Cubic Drift (mmHg)":
+            return defaults.co2CubicDrift
+            
+        // Drift Parameters - MRI
+        case "MRI Linear Drift (%)":
+            return defaults.mriLinearDrift
+        case "MRI Quadratic Drift (%)":
+            return defaults.mriQuadraticDrift
+        case "MRI Cubic Drift (%)":
+            return defaults.mriCubicDrift
+            
+        default:
+            return 0.0
+        }
+    }
+    
+    // Function to get the default boolean value for toggle parameters
+    func getDefaultToggleValue(forFeature featureName: String) -> Bool {
+        let defaults = SimulationParameters()
+        
+        switch featureName {
+        case "CO₂ Variance":
+            return defaults.enableCO2Variance
+        case "MRI Noise":
+            return defaults.enableMRINoise
+        case "CO₂ Drift":
+            return defaults.enableCO2Drift
+        case "MRI Drift":
+            return defaults.enableMRIDrift
+        default:
+            return true
+        }
+    }
+    
     // Create a representation of parameter state as a struct
     // This avoids using copy() which might not be compatible with @Model
     @Transient var cachedParamState: ParameterState?
