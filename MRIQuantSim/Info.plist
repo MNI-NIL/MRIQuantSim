@@ -1,42 +1,36 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-"http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-    <!-- Basic App Info -->
-    <key>CFBundleDevelopmentRegion</key>
-    <string>en</string>
-    <key>CFBundleExecutable</key>
-    <string>$(EXECUTABLE_NAME)</string>
-    <key>CFBundleIdentifier</key>
-    <string>net.endoquant.MRIQuantSim</string>
-    <key>CFBundleInfoDictionaryVersion</key>
-    <string>6.0</string>
-    <key>CFBundleName</key>
-    <string>MRIQuantSim</string>
-    <key>CFBundlePackageType</key>
-    <string>APPL</string>
-    <key>CFBundleShortVersionString</key>
-    <string>1.0.2</string>
-    <key>CFBundleVersion</key>
-    <string>2</string>
-    <key>NSPrincipalClass</key>
-    <string>NSApplication</string>
-
-    <!-- Help Book Configuration -->
-    <key>CFBundleHelpBookFolder</key>
-    <string>MRIQuantSim.help</string>
-    <key>CFBundleHelpBookName</key>
-    <string>net.endoquant.MRIQuantSim.help</string>
-
-    <!-- macOS-specific UI config -->
-    <key>LSMinimumSystemVersion</key>
-    <string>15.0</string>
-    <key>NSMainNibFile</key>
-    <string></string>
-    <key>NSHighResolutionCapable</key>
-    <true/>
-    <key>NSHumanReadableCopyright</key>
-    <string>Copyright © 2025 EndoQuant. All rights reserved.</string>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>en</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>net.endoquant.MRIQuantSim</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>MRIQuantSim</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>1.0.3</string>
+	<key>CFBundleVersion</key>
+	<string>3</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>CFBundleHelpBookFolder</key>
+	<string>MRIQuantSim.help</string>
+	<key>CFBundleHelpBookName</key>
+	<string>net.endoquant.MRIQuantSim.help</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>15.0</string>
+	<key>NSMainNibFile</key>
+	<string></string>
+	<key>NSHighResolutionCapable</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string>Copyright © 2025 EndoQuant. All rights reserved.</string>
 </dict>
 </plist>
