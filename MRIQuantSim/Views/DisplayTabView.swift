@@ -100,8 +100,11 @@ struct DisplayTabView: View {
                 
                 // Note: Noise regeneration button has been moved to the Signal tab
             }
-            .padding()
+            .padding(.vertical)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity)
     }
 }
 

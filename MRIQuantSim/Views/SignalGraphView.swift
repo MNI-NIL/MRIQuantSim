@@ -47,11 +47,11 @@ struct SignalGraphView: View {
             if let range = yRange {
                 chartView
                     .chartYScale(domain: range)
-                    .frame(height: 200)
+                    .frame(minHeight: 200, idealHeight: 250, maxHeight: 300)
             } else {
                 chartView
                     .chartYScale(domain: calculateYRange())
-                    .frame(height: 200)
+                    .frame(minHeight: 200, idealHeight: 250, maxHeight: 300)
             }
         }
         .padding()

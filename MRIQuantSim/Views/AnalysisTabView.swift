@@ -45,13 +45,16 @@ struct AnalysisTabView: View {
                     detrendingOptionsSection
                 }
                 
-                // Model Results section remains full width
+                // Model Results section
                 if parameters.showModelOverlay {
                     modelResultsSection
                 }
             }
-            .padding()
+            .padding(.vertical)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity) // Ensure VStack takes available width
         }
+        .frame(maxWidth: .infinity) // Ensure ScrollView takes available width
     }
     
     // Display options have been moved to a dedicated Display tab
@@ -274,12 +277,12 @@ struct AnalysisTabView: View {
                         // Headers
                         HStack(alignment: .firstTextBaseline) {
                             Text("Parameter")
-                                .frame(width: 150, alignment: .leading)
+                                .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
                             Spacer()
                             Text("Estimated")
-                                .frame(width: 100, alignment: .trailing)
+                                .frame(width: 80, alignment: .trailing)
                             Text("True Value")
-                                .frame(width: 100, alignment: .trailing)
+                                .frame(width: 80, alignment: .trailing)
                         }
                         .font(.subheadline.bold())
                         .foregroundColor(.secondary)
@@ -293,15 +296,15 @@ struct AnalysisTabView: View {
                         HStack(alignment: .firstTextBaseline) {
                             Text("BOLD % Change")
                                 .font(.subheadline)
-                                .frame(width: 150, alignment: .leading)
+                                .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
                             Spacer()
                             Text(String(format: "%.2f%%", simulationData.percentChangeMetric))
                                 .foregroundColor(.primary)
-                                .frame(width: 100, alignment: .trailing)
+                                .frame(width: 80, alignment: .trailing)
                             Text(String(format: "%.2f%%", 
                                        (parameters.mriResponseAmplitude / parameters.mriBaselineSignal) * 100.0))
                                 .foregroundColor(.green)
-                                .frame(width: 100, alignment: .trailing)
+                                .frame(width: 80, alignment: .trailing)
                         }
                         .padding(.vertical, 8)
                         .padding(.horizontal, 12)
@@ -314,11 +317,11 @@ struct AnalysisTabView: View {
                             HStack(alignment: .firstTextBaseline) {
                                 Text(betaParamName(index: index))
                                     .font(.subheadline)
-                                    .frame(width: 150, alignment: .leading)
+                                    .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
                                 Spacer()
                                 Text(String(format: "%.2f", value))
                                     .foregroundColor(.primary)
-                                    .frame(width: 100, alignment: .trailing)
+                                    .frame(width: 80, alignment: .trailing)
                                 // Get the true value based on parameter type
                                 Group {
                                     if index == 0 {
@@ -353,7 +356,7 @@ struct AnalysisTabView: View {
                                             .foregroundColor(.secondary.opacity(0.5))
                                     }
                                 }
-                                .frame(width: 100, alignment: .trailing)
+                                .frame(width: 80, alignment: .trailing)
                             }
                             .padding(.vertical, 8)
                             .padding(.horizontal, 12)

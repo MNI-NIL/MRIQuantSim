@@ -191,14 +191,13 @@ struct ContentView: View {
     @ObservedObject var simulator: SimulationController
     @State private var selectedTab = 0
     
-    // State for the split position
-    @State private var topPanelHeight: CGFloat = 500
+    // No need for state variable with fixed constraints
     
     var body: some View {
-        // Use VSplitView for a draggable divider between the graph and parameters sections
-        VSplitView {
-            // UPPER SECTION: Graphs container
-            VStack(spacing: 8) {
+        // Use HSplitView for a side-by-side layout with graphs on left, controls on right
+        HSplitView {
+            // LEFT SECTION: Graphs container
+            VStack(spacing: 12) {
                 // CO2 Graph
                 SignalGraphView(
                     title: "CO₂ Partial Pressure",
@@ -219,46 +218,50 @@ struct ContentView: View {
                     yRange: getMRIYRange()
                 )
                 .id("mriGraph-\(simulator.viewRefreshTrigger)") // Force redraw when trigger changes
+                
+                Spacer()
             }
             .padding(.horizontal)
-            .frame(height: topPanelHeight)
+            .frame(minWidth: 500)
             .background(Color(NSColor.textBackgroundColor))
             
-            // LOWER SECTION: Parameters, Display and Analysis Tabs
-            TabView(selection: $selectedTab) {
-                ParametersTabView(
-                    parameters: $simulator.parameters,
-                    onParameterChanged: simulator.parameterChanged,
-                    onRegenerateNoise: simulator.regenerateMRINoise,
-                    onRandomizeCO2VariancePhase: simulator.randomizeCO2VariancePhase
-                )
-                .tabItem {
-                    Label("Signal", systemImage: "waveform")
+            // RIGHT SECTION: Parameters, Display and Analysis Tabs
+            VStack {
+                TabView(selection: $selectedTab) {
+                    ParametersTabView(
+                        parameters: $simulator.parameters,
+                        onParameterChanged: simulator.parameterChanged,
+                        onRegenerateNoise: simulator.regenerateMRINoise,
+                        onRandomizeCO2VariancePhase: simulator.randomizeCO2VariancePhase
+                    )
+                    .tabItem {
+                        Label("Signal", systemImage: "waveform")
+                    }
+                    .tag(0)
+                    
+                    AnalysisTabView(
+                        parameters: $simulator.parameters,
+                        simulationData: simulator.simulationData,
+                        onParameterChanged: simulator.parameterChanged,
+                        onRegenerateNoise: simulator.regenerateMRINoise,
+                        onForceRefresh: simulator.forceViewRefresh
+                    )
+                    .tabItem {
+                        Label("Analysis", systemImage: "chart.bar")
+                    }
+                    .tag(1)
+                    
+                    DisplayTabView(
+                        parameters: $simulator.parameters,
+                        onParameterChanged: simulator.parameterChanged
+                    )
+                    .tabItem {
+                        Label("Display", systemImage: "display")
+                    }
+                    .tag(2)
                 }
-                .tag(0)
-                
-                AnalysisTabView(
-                    parameters: $simulator.parameters,
-                    simulationData: simulator.simulationData,
-                    onParameterChanged: simulator.parameterChanged,
-                    onRegenerateNoise: simulator.regenerateMRINoise,
-                    onForceRefresh: simulator.forceViewRefresh
-                )
-                .tabItem {
-                    Label("Analysis", systemImage: "chart.bar")
-                }
-                .tag(1)
-                
-                DisplayTabView(
-                    parameters: $simulator.parameters,
-                    onParameterChanged: simulator.parameterChanged
-                )
-                .tabItem {
-                    Label("Display", systemImage: "display")
-                }
-                .tag(2)
             }
-            .frame(minHeight: 250, idealHeight: 300, maxHeight: .infinity)
+            .frame(minWidth: 280, maxWidth: 400)
             .background(Color(NSColor.controlBackgroundColor))
         }
         .padding(20)

@@ -326,8 +326,11 @@ struct ParametersTabView: View {
                 
                 // Display options have been moved to a dedicated Display tab
             }
-            .padding()
+            .padding(.vertical)
+            .padding(.horizontal, 8)
+            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: .infinity)
     }
     
     private func parameterRow(title: String, value: Binding<Double>, disabled: Bool = false) -> some View {
