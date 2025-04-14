@@ -514,10 +514,15 @@ struct ContentView: View {
                 // Add parameter name
                 paramNames.append(termNames[displayIndex])
                 
-                print("Debug: Adding term \(termNames[displayIndex]) with beta \(betaIndex): \(simData.betaParams[betaIndex])")
-                
-                // Add estimated value from the correct beta parameter
-                estimatedValues.append(simData.betaParams[betaIndex])
+                // For Response term in FIR models, use the encapsulated FIR response magnitude
+                if displayIndex == 0 && params.analysisModelType == .fir {
+                    print("Debug: FIR model detected - using FIR response magnitude \(simData.firResponseMagnitude) instead of beta[0] \(simData.betaParams[betaIndex])")
+                    estimatedValues.append(simData.firResponseMagnitude)
+                } else {
+                    // For non-FIR models, use the specific beta parameter directly
+                    print("Debug: Adding term \(termNames[displayIndex]) with beta \(betaIndex): \(simData.betaParams[betaIndex])")
+                    estimatedValues.append(simData.betaParams[betaIndex])
+                }
                 
                 // Add corresponding true value
                 switch displayIndex {
@@ -636,6 +641,8 @@ struct ContentView: View {
                         simulator.parameters.includeLinearTerm, 
                         simulator.parameters.includeQuadraticTerm,
                         simulator.parameters.includeCubicTerm,
+                        simulator.parameters.analysisModelTypeString,
+                        simulator.simulationData.firResponseMagnitude,
                         simulator.simulationData.signalToNoiseRatio,
                         simulator.simulationData.contrastToNoiseRatio
                     )
@@ -823,9 +830,13 @@ struct ContentView: View {
             // Create the appropriate parameter data based on the term name
             switch name {
             case "Response":
+                // For FIR model, use the calculated FIR response magnitude
+                let responseValue = params.analysisModelType == .fir ? 
+                    simData.firResponseMagnitude : simData.betaParams[index]
+                
                 result.append(ParameterData(
                     name: "Response",
-                    estimatedValue: simData.betaParams[index],
+                    estimatedValue: responseValue,
                     trueValue: params.mriResponseAmplitude
                 ))
                 

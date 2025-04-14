@@ -16,6 +16,14 @@ enum ResponseShapeType: String, Codable, CaseIterable {
     // Future shape types can be added here
 }
 
+// Enum for FIR response magnitude calculation methods
+enum FIRResponseMethod: String, Codable, CaseIterable {
+    case maximum = "Maximum Value"
+    case mean = "Mean Value"
+    case meanPositive = "Mean of Positive Values"
+    // case timeWindow = "Time Window" - Requires custom parameters, will implement in future update
+}
+
 @Model
 final class SimulationParameters {
     // Signal Parameters
@@ -36,10 +44,14 @@ final class SimulationParameters {
     @Transient
     var responseShapeType: ResponseShapeType {
         get {
-            ResponseShapeType(rawValue: responseShapeTypeString) ?? .boxcar
+            let shapeType = ResponseShapeType(rawValue: responseShapeTypeString) ?? .boxcar
+            // Ensure FIR is not used for simulation - fallback to boxcar
+            return shapeType == .fir ? .boxcar : shapeType
         }
         set {
-            responseShapeTypeString = newValue.rawValue
+            // Prevent FIR from being set as simulation shape
+            let safeValue = newValue == .fir ? .boxcar : newValue
+            responseShapeTypeString = safeValue.rawValue
         }
     }
     
@@ -48,6 +60,7 @@ final class SimulationParameters {
     var analysisRiseTimeConstant: Double
     var analysisFallTimeConstant: Double
     var analysisFIRCoverage: Double
+    var analysisFIRResponseMethodString: String
     
     // Computed property for analysis model type
     @Transient
@@ -57,6 +70,17 @@ final class SimulationParameters {
         }
         set {
             analysisModelTypeString = newValue.rawValue
+        }
+    }
+    
+    // Computed property for FIR response method
+    @Transient
+    var analysisFIRResponseMethod: FIRResponseMethod {
+        get {
+            FIRResponseMethod(rawValue: analysisFIRResponseMethodString) ?? .maximum
+        }
+        set {
+            analysisFIRResponseMethodString = newValue.rawValue
         }
     }
     
@@ -134,6 +158,7 @@ final class SimulationParameters {
         analysisRiseTimeConstant = 10.0 // seconds
         analysisFallTimeConstant = 5.0 // seconds
         analysisFIRCoverage = 90.0 // seconds - default FIR coverage duration
+        analysisFIRResponseMethodString = FIRResponseMethod.maximum.rawValue // default to maximum FIR response method
         
         // Noise Parameters
         co2VarianceFrequency = 0.05 // Hz
@@ -196,6 +221,7 @@ final class SimulationParameters {
         analysisRiseTimeConstant = defaults.analysisRiseTimeConstant
         analysisFallTimeConstant = defaults.analysisFallTimeConstant
         analysisFIRCoverage = defaults.analysisFIRCoverage
+        analysisFIRResponseMethodString = defaults.analysisFIRResponseMethodString
         
         // Noise Parameters
         co2VarianceFrequency = defaults.co2VarianceFrequency
@@ -356,6 +382,7 @@ final class SimulationParameters {
             analysisRiseTimeConstant: analysisRiseTimeConstant,
             analysisFallTimeConstant: analysisFallTimeConstant,
             analysisFIRCoverage: analysisFIRCoverage,
+            analysisFIRResponseMethodString: analysisFIRResponseMethodString,
             
             // Model terms
             includeConstantTerm: includeConstantTerm,
@@ -395,6 +422,7 @@ struct ParameterState: Equatable {
     let analysisRiseTimeConstant: Double
     let analysisFallTimeConstant: Double
     let analysisFIRCoverage: Double
+    let analysisFIRResponseMethodString: String
     
     // Computed properties for convenience
     var responseShapeType: ResponseShapeType {
@@ -403,6 +431,10 @@ struct ParameterState: Equatable {
     
     var analysisModelType: ResponseShapeType {
         ResponseShapeType(rawValue: analysisModelTypeString) ?? .boxcar
+    }
+    
+    var analysisFIRResponseMethod: FIRResponseMethod {
+        FIRResponseMethod(rawValue: analysisFIRResponseMethodString) ?? .maximum
     }
     
     // Model terms
@@ -528,7 +560,8 @@ struct ParameterState: Equatable {
             analysisModelTypeString != previous.analysisModelTypeString ||
             analysisRiseTimeConstant != previous.analysisRiseTimeConstant ||
             analysisFallTimeConstant != previous.analysisFallTimeConstant ||
-            analysisFIRCoverage != previous.analysisFIRCoverage;
+            analysisFIRCoverage != previous.analysisFIRCoverage ||
+            analysisFIRResponseMethodString != previous.analysisFIRResponseMethodString;
             
         // And all other parameters remain the same
         return analysisParamsChanged &&

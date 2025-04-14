@@ -63,12 +63,141 @@ class SimulationData: ObservableObject {
     @Published var percentChangeMetric: Double = 0.0
     @Published var signalToNoiseRatio: Double = 0.0
     @Published var contrastToNoiseRatio: Double = 0.0
+    @Published var firResponseMagnitude: Double = 0.0 // Store calculated FIR response magnitude
+    @Published var firTimeToMaxResponse: Double = 0.0 // Store time to max response for FIR
+    
+    // Enum for FIR response magnitude calculation methods
+    enum FIRResponseMethod {
+        case maximum        // Use the maximum beta value
+        case mean           // Use the mean of all beta values
+        case meanPositive   // Mean of all positive beta values
+        case timeWindow(start: Double, end: Double) // Average beta values within a time window
+    }
     
     // Store normalized noise values (mean 0, std 1) separately so they can be reused
     private var mriNormalizedNoiseValues: [Double] = []
     
     // Store random phase offset for CO2 variance
     private var co2VariancePhaseOffset: Double = 0.0
+    
+    // Storage for FIR response method - this will be set from the parameters
+    private var firResponseMethod: FIRResponseMethod = .maximum
+    
+    // Calculate FIR response magnitude with specified method
+    func calculateFIRResponseMagnitude(
+        parameters: SimulationParameters,
+        method: FIRResponseMethod? = nil,
+        firRegressorCount: Int? = nil
+    ) -> Double {
+        // Use provided method or default
+        let method = method ?? firResponseMethod
+        
+        // Calculate FIR regressor count if not provided
+        let firCount = firRegressorCount ?? {
+            let samplesPerSecond = 1.0 / parameters.mriSamplingInterval
+            return Int(parameters.analysisFIRCoverage * samplesPerSecond)
+        }()
+        
+        // Make sure we have valid beta parameters and FIR count
+        guard !betaParams.isEmpty && firCount > 0 else {
+            return 0.0
+        }
+        
+        // Calculate response magnitude based on selected method
+        switch method {
+        case .maximum:
+            // Find the maximum beta value
+            var maxBeta = 0.0
+            var maxIndex = 0
+            
+            for i in 0..<firCount {
+                if i < betaParams.count {
+                    let betaValue = abs(betaParams[i])
+                    if betaValue > maxBeta {
+                        maxBeta = betaValue
+                        maxIndex = i
+                    }
+                }
+            }
+            
+            // Store the time to max response (useful metadata for this method)
+            firTimeToMaxResponse = Double(maxIndex) * parameters.mriSamplingInterval
+            
+            return maxBeta
+            
+        case .mean:
+            // Calculate mean of all FIR beta values
+            var sum = 0.0
+            var count = 0
+            
+            for i in 0..<firCount {
+                if i < betaParams.count {
+                    sum += abs(betaParams[i])
+                    count += 1
+                }
+            }
+            
+            return count > 0 ? sum / Double(count) : 0.0
+            
+        case .meanPositive:
+            // Mean of positive FIR beta values
+            var sum = 0.0
+            var positiveCount = 0
+            
+            for i in 0..<firCount {
+                if i < betaParams.count && betaParams[i] > 0 {
+                    sum += betaParams[i]
+                    positiveCount += 1
+                }
+            }
+            
+            // Normalize by number of positive regressors
+            return positiveCount > 0 ? sum / Double(positiveCount) : 0.0
+            
+        case .timeWindow(let startTime, let endTime):
+            // Calculate mean beta within a time window
+            var sum = 0.0
+            var count = 0
+            
+            // Convert time to indices
+            let startIndex = Int(startTime / parameters.mriSamplingInterval)
+            let endIndex = Int(endTime / parameters.mriSamplingInterval)
+            
+            // Make sure indices are within range
+            let validStart = max(0, min(startIndex, firCount - 1))
+            let validEnd = max(validStart, min(endIndex, firCount - 1))
+            
+            // Calculate mean within window
+            for i in validStart...validEnd {
+                if i < betaParams.count {
+                    sum += abs(betaParams[i])
+                    count += 1
+                }
+            }
+            
+            return count > 0 ? sum / Double(count) : 0.0
+        }
+    }
+    
+    // Set the FIR response method to use (from a string method name)
+    func setFIRResponseMethod(methodName: String) {
+        // Map from string to our internal enum
+        if methodName == "Maximum Value" {
+            firResponseMethod = .maximum
+        } else if methodName == "Mean Value" {
+            firResponseMethod = .mean
+        } else if methodName == "Mean of Positive Values" {
+            firResponseMethod = .meanPositive
+        } else {
+            // Default to maximum if method not recognized
+            firResponseMethod = .maximum
+        }
+        
+        // Recalculate FIR response magnitude if we have beta parameters
+        if !betaParams.isEmpty {
+            firResponseMagnitude = calculateFIRResponseMagnitude(parameters: SimulationParameters())
+        }
+    }
     
     // Helper methods to create TimeSeriesData objects
     func getCO2SeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
@@ -862,45 +991,44 @@ class SimulationData: ObservableObject {
         
         // Calculate percent change metric based on model type
         if parameters.analysisModelType == .fir && firRegressorCount > 0 {
-            // For FIR model, use the peak of the FIR beta parameters
-            // This better represents the maximum response, similar to boxcar/exponential
-            var maxFirBeta = 0.0
-            var firSum = 0.0
-            var nonZeroBetaCount = 0
+            // Convert parameters FIR response method to our internal type
+            let methodString = parameters.analysisFIRResponseMethodString
             
-            // Find the peak and also calculate sum for average
-            for i in 0..<firRegressorCount {
-                if i < betaParams.count {
-                    let betaValue = abs(betaParams[i])
-                    firSum += betaValue
-                    if betaValue > 0 {
-                        nonZeroBetaCount += 1
-                    }
-                    maxFirBeta = max(maxFirBeta, betaValue)
-                }
+            // Map from parameters enum to local enum
+            if methodString == "Maximum Value" {
+                firResponseMethod = .maximum
+            } else if methodString == "Mean Value" {
+                firResponseMethod = .mean
+            } else if methodString == "Mean of Positive Values" {
+                firResponseMethod = .meanPositive
+            } else {
+                // Default to maximum if method not recognized
+                firResponseMethod = .maximum
             }
             
-            // Calculate mean FIR response (avoid division by zero)
-            let meanFirResponse = nonZeroBetaCount > 0 ? firSum / Double(nonZeroBetaCount) : 0.0
+            // Calculate FIR response magnitude using the current method
+            firResponseMagnitude = calculateFIRResponseMagnitude(
+                parameters: parameters,
+                method: firResponseMethod,
+                firRegressorCount: firRegressorCount
+            )
             
-            // Debug info
+            // Log which method we're using for the FIR response
             print("FIR model metrics:")
-            print("  - Max FIR beta: \(maxFirBeta)")
-            print("  - Mean FIR beta: \(meanFirResponse)")
-            print("  - Non-zero beta count: \(nonZeroBetaCount) out of \(firRegressorCount)")
+            print("  - Response method: \(firResponseMethod)")
+            print("  - Response magnitude: \(firResponseMagnitude)")
+            if case .maximum = firResponseMethod {
+                print("  - Time to max response: \(firTimeToMaxResponse)s")
+            }
             
             // Find constant term index (follows all the FIR regressors)
             let constTermIndex = firRegressorCount
-            
-            // Use the maximum FIR beta value for percent change calculation
-            // This is more comparable to the single beta from boxcar/exponential models
-            let responseAmplitude = maxFirBeta
             
             // Calculate percent change if constant term is included
             if parameters.includeConstantTerm && constTermIndex < betaParams.count {
                 let baseline = abs(betaParams[constTermIndex])
                 if baseline > 0 {
-                    percentChangeMetric = (responseAmplitude / baseline) * 100.0
+                    percentChangeMetric = (firResponseMagnitude / baseline) * 100.0
                     print("  - Percent change: \(percentChangeMetric)%")
                 } else {
                     percentChangeMetric = 0.0
@@ -923,13 +1051,44 @@ class SimulationData: ObservableObject {
         
         // Generate modeled signal
         mriModeledSignal = Array(repeating: 0.0, count: mriTimePoints.count)
+        
         if !betaParams.isEmpty {
+            // For all model types, generate the true model fit first
+            // This gives the complete modeled signal with all components
             for i in 0..<mriTimePoints.count {
                 var modelValue = 0.0
                 for j in 0..<betaParams.count {
                     modelValue += betaParams[j] * X[i][j]
                 }
                 mriModeledSignal[i] = modelValue
+            }
+            
+            // For FIR model, we'll report additional information about response magnitudes
+            if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+                // Find the maximum FIR beta value like we did for percent change
+                var maxFirBeta = 0.0
+                var maxFirIndex = 0
+                var sumFirBetas = 0.0
+                
+                // Find the peak FIR beta and its index
+                for i in 0..<firRegressorCount {
+                    if i < betaParams.count {
+                        let betaValue = abs(betaParams[i])
+                        sumFirBetas += betaValue
+                        if betaValue > maxFirBeta {
+                            maxFirBeta = betaValue
+                            maxFirIndex = i
+                        }
+                    }
+                }
+                
+                // Compute what time offset this represents
+                let peakTimeOffset = Double(maxFirIndex) * parameters.mriSamplingInterval
+                
+                print("FIR visualization metrics:")
+                print("  - Max beta: \(maxFirBeta) at index \(maxFirIndex) (time = \(peakTimeOffset)s)")
+                print("  - Sum of all FIR betas: \(sumFirBetas)")
+                print("  - Average of FIR betas: \(sumFirBetas/Double(firRegressorCount))")
             }
         }
         
@@ -999,21 +1158,13 @@ class SimulationData: ObservableObject {
                 signal = abs(betaParams[constTermIndex])
             }
             
-            // Contrast is the maximum of all FIR beta parameters
-            // This is more comparable to the single beta from boxcar/exponential models
-            var maxFirBeta = 0.0
-            for i in 0..<firRegressorCount {
-                if i < betaParams.count {
-                    let betaValue = abs(betaParams[i])
-                    maxFirBeta = max(maxFirBeta, betaValue)
-                }
-            }
-            contrast = maxFirBeta
+            // Contrast is the FIR response magnitude (already calculated)
+            contrast = firResponseMagnitude
             
             // Debug info for SNR and CNR
             print("FIR model SNR/CNR:")
             print("  - Signal (baseline): \(signal)")
-            print("  - Contrast (max beta): \(contrast)")
+            print("  - Contrast (FIR response): \(contrast)")
             print("  - Noise RMS: \(noiseRMS)")
         } else {
             // For Boxcar and Exponential models

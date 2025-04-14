@@ -302,8 +302,26 @@
             <li>Calculates statistical measures of confidence in these estimates</li>
         </ol>
         
+        <h3>Response Shape Models</h3>
+        <p>MRIQuantSim supports three different response shape models for analysis:</p>
+        <ul>
+            <li><strong>Boxcar</strong>: A simple step function used in many fMRI analyses. Uses a single regressor.</li>
+            <li><strong>Exponential</strong>: A more physiologically realistic model with customizable rise and fall time constants. Uses a single regressor.</li>
+            <li><strong>FIR (Finite Impulse Response)</strong>: A flexible model that estimates the response at each time point after stimulus onset, using multiple regressors. This makes no assumptions about the shape of the response.
+                <ul>
+                    <li>Configure the <strong>Coverage Duration</strong> to control how far after stimulus onset the model extends (default 90s)</li>
+                    <li>Select from multiple <strong>Response Magnitude Methods</strong> to quantify the overall response:</li>
+                    <ul>
+                        <li><strong>Maximum Value</strong>: Reports the peak FIR coefficient (and its time)</li>
+                        <li><strong>Mean Value</strong>: Averages all FIR coefficients over the coverage duration</li>
+                        <li><strong>Mean of Positive Values</strong>: Averages only positive FIR coefficients</li>
+                    </ul>
+                </ul>
+            </li>
+        </ul>
+        
         <div class="tip">
-            <strong>Tip:</strong> Explore how the shape of the response function affects estimation accuracy. The better your model matches the true underlying signal, the more accurate your estimates will be.
+            <strong>Tip:</strong> Explore how the shape of the response function affects estimation accuracy. The better your model matches the true underlying signal, the more accurate your estimates will be. The FIR model is particularly useful when you're unsure about the exact shape of the response.
         </div>
     </div>
 
@@ -319,6 +337,14 @@
             <li><strong>Filtering</strong>: Remove specific frequency components</li>
             <li><strong>Detrending</strong>: Remove linear or polynomial trends</li>
             <li><strong>Windowing</strong>: Focus analysis on specific time periods</li>
+        </ul>
+        
+        <h3>Advanced Model Selection</h3>
+        <p>MRIQuantSim allows you to use different models for simulation and analysis:</p>
+        <ul>
+            <li><strong>Boxcar Simulation with Exponential Analysis</strong>: See how model mis-specification affects results</li>
+            <li><strong>Exponential Simulation with FIR Analysis</strong>: See if FIR can accurately recover the response shape</li>
+            <li><strong>FIR Analysis with Various Coverage Durations</strong>: Explore how the coverage parameter affects estimation</li>
         </ul>
         
         <div class="note">
@@ -343,6 +369,22 @@
             <li>Use physiologically plausible parameter values</li>
             <li>Add appropriate constraints to the model</li>
             <li>Consider the temporal characteristics of real physiological systems</li>
+        </ul>
+        
+        <h3>FIR Model Considerations</h3>
+        <p>When using the FIR model:</p>
+        <ul>
+            <li>Ensure the Coverage Duration is long enough to capture the full response plus return to baseline</li>
+            <li>Be aware that including too many FIR regressors without sufficient data can lead to overfitting</li>
+            <li>Select the appropriate FIR Response Method based on your analysis needs:
+                <ul>
+                    <li><strong>Maximum Value</strong>: Best for measuring peak response amplitude</li>
+                    <li><strong>Mean Value</strong>: Best for measuring average response across the entire time period</li>
+                    <li><strong>Mean of Positive Values</strong>: Best when response includes both positive and negative components and you're only interested in the positive response</li>
+                </ul>
+            </li>
+            <li>Review the FIR Response magnitude in the Model Results table to understand the overall response</li>
+            <li>Remember that FIR is an analysis model only and cannot be used for signal simulation</li>
         </ul>
     </div>
 

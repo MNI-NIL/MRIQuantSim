@@ -282,8 +282,28 @@ struct AnalysisTabView: View {
                         }
                         .padding(.vertical, 4)
                         
+                        // FIR Response Method Picker
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("FIR Response Method")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                
+                            Picker("", selection: $parameters.analysisFIRResponseMethod) {
+                                ForEach(FIRResponseMethod.allCases, id: \.self) { method in
+                                    Text(method.rawValue).tag(method)
+                                }
+                            }
+                            .pickerStyle(MenuPickerStyle())
+                            .onChange(of: parameters.analysisFIRResponseMethod) { _, _ in
+                                onParameterChanged()
+                                onForceRefresh() // Force immediate refresh
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        .padding(.vertical, 4)
+                        
                         // Information about FIR model
-                        Text("The FIR model uses separate regressors for each time point after stimulus onset, allowing flexible modeling of the hemodynamic response shape. The coverage duration determines how far the model extends after stimulus onset.")
+                        Text("The FIR model uses separate regressors for each time point after stimulus onset, allowing flexible modeling of the hemodynamic response shape. The coverage duration determines how far the model extends after stimulus onset. The response method controls how the overall response magnitude is calculated from individual FIR coefficients.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
@@ -387,6 +407,27 @@ struct AnalysisTabView: View {
                         .padding(.horizontal, 12)
                         .background(Color(white: colorScheme == .dark ? 0.15 : 1.0))
                         
+                        // Only show FIR Response Magnitude row if using FIR model
+                        if parameters.analysisModelType == .fir {
+                            Divider()
+                            
+                            HStack(alignment: .firstTextBaseline) {
+                                Text("FIR Response")
+                                    .font(.subheadline)
+                                    .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
+                                Spacer()
+                                Text(String(format: "%.2f", simulationData.firResponseMagnitude))
+                                    .foregroundColor(.primary)
+                                    .frame(width: 80, alignment: .trailing)
+                                Text(String(format: "%.2f", parameters.mriResponseAmplitude))
+                                    .foregroundColor(.green)
+                                    .frame(width: 80, alignment: .trailing)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color(white: colorScheme == .dark ? 0.17 : 0.97))
+                        }
+                        
                         // Model parameter rows
                         ForEach(Array(simulationData.betaParams.enumerated()), id: \.offset) { index, value in
                             Divider()
@@ -401,36 +442,77 @@ struct AnalysisTabView: View {
                                     .frame(width: 80, alignment: .trailing)
                                 // Get the true value based on parameter type
                                 Group {
-                                    if index == 0 {
-                                        // Stimulus response
-                                        Text(String(format: "%.2f", parameters.mriResponseAmplitude))
-                                            .foregroundColor(.green)
-                                    } else if index == 1 && parameters.includeConstantTerm {
-                                        // Constant term (baseline)
-                                        Text(String(format: "%.2f", parameters.mriBaselineSignal))
-                                            .foregroundColor(.green)
-                                    } else if parameters.enableMRIDrift && parameters.includeLinearTerm && 
-                                             betaParamName(index: index) == "Linear Drift" {
-                                        // Linear drift
-                                        let trueLinearDrift = parameters.mriLinearDrift * parameters.mriBaselineSignal / 100.0
-                                        Text(String(format: "%.2f", trueLinearDrift))
-                                            .foregroundColor(.green)
-                                    } else if parameters.enableMRIDrift && parameters.includeQuadraticTerm && 
-                                             betaParamName(index: index) == "Quadratic Drift" {
-                                        // Quadratic drift
-                                        let trueQuadDrift = parameters.mriQuadraticDrift * parameters.mriBaselineSignal / 100.0
-                                        Text(String(format: "%.2f", trueQuadDrift))
-                                            .foregroundColor(.green)
-                                    } else if parameters.enableMRIDrift && parameters.includeCubicTerm && 
-                                             betaParamName(index: index) == "Cubic Drift" {
-                                        // Cubic drift
-                                        let trueCubicDrift = parameters.mriCubicDrift * parameters.mriBaselineSignal / 100.0
-                                        Text(String(format: "%.2f", trueCubicDrift))
-                                            .foregroundColor(.green)
+                                    if parameters.analysisModelType == .fir {
+                                        // For FIR model, handle differently
+                                        let paramName = betaParamName(index: index)
+                                        
+                                        if paramName.hasPrefix("FIR") {
+                                            // For FIR beta parameters, show placeholder
+                                            // because there's no single "true" value for each FIR regressor
+                                            Text("-")
+                                                .foregroundColor(.secondary.opacity(0.5))
+                                                
+                                        } else if paramName == "Constant Term" {
+                                            // Constant term (baseline)
+                                            Text(String(format: "%.2f", parameters.mriBaselineSignal))
+                                                .foregroundColor(.green)
+                                                
+                                        } else if paramName == "Linear Drift" && parameters.enableMRIDrift {
+                                            // Linear drift
+                                            let trueLinearDrift = parameters.mriLinearDrift * parameters.mriBaselineSignal / 100.0
+                                            Text(String(format: "%.2f", trueLinearDrift))
+                                                .foregroundColor(.green)
+                                                
+                                        } else if paramName == "Quadratic Drift" && parameters.enableMRIDrift {
+                                            // Quadratic drift
+                                            let trueQuadDrift = parameters.mriQuadraticDrift * parameters.mriBaselineSignal / 100.0
+                                            Text(String(format: "%.2f", trueQuadDrift))
+                                                .foregroundColor(.green)
+                                                
+                                        } else if paramName == "Cubic Drift" && parameters.enableMRIDrift {
+                                            // Cubic drift
+                                            let trueCubicDrift = parameters.mriCubicDrift * parameters.mriBaselineSignal / 100.0
+                                            Text(String(format: "%.2f", trueCubicDrift))
+                                                .foregroundColor(.green)
+                                                
+                                        } else {
+                                            // For other parameters, just use a placeholder
+                                            Text("-")
+                                                .foregroundColor(.secondary.opacity(0.5))
+                                        }
                                     } else {
-                                        // For other parameters, just use a placeholder to maintain alignment
-                                        Text("-")
-                                            .foregroundColor(.secondary.opacity(0.5))
+                                        // For non-FIR models, use the original logic
+                                        if index == 0 {
+                                            // Stimulus response
+                                            Text(String(format: "%.2f", parameters.mriResponseAmplitude))
+                                                .foregroundColor(.green)
+                                        } else if index == 1 && parameters.includeConstantTerm {
+                                            // Constant term (baseline)
+                                            Text(String(format: "%.2f", parameters.mriBaselineSignal))
+                                                .foregroundColor(.green)
+                                        } else if parameters.enableMRIDrift && parameters.includeLinearTerm && 
+                                                 betaParamName(index: index) == "Linear Drift" {
+                                            // Linear drift
+                                            let trueLinearDrift = parameters.mriLinearDrift * parameters.mriBaselineSignal / 100.0
+                                            Text(String(format: "%.2f", trueLinearDrift))
+                                                .foregroundColor(.green)
+                                        } else if parameters.enableMRIDrift && parameters.includeQuadraticTerm && 
+                                                 betaParamName(index: index) == "Quadratic Drift" {
+                                            // Quadratic drift
+                                            let trueQuadDrift = parameters.mriQuadraticDrift * parameters.mriBaselineSignal / 100.0
+                                            Text(String(format: "%.2f", trueQuadDrift))
+                                                .foregroundColor(.green)
+                                        } else if parameters.enableMRIDrift && parameters.includeCubicTerm && 
+                                                 betaParamName(index: index) == "Cubic Drift" {
+                                            // Cubic drift
+                                            let trueCubicDrift = parameters.mriCubicDrift * parameters.mriBaselineSignal / 100.0
+                                            Text(String(format: "%.2f", trueCubicDrift))
+                                                .foregroundColor(.green)
+                                        } else {
+                                            // For other parameters, just use a placeholder to maintain alignment
+                                            Text("-")
+                                                .foregroundColor(.secondary.opacity(0.5))
+                                        }
                                     }
                                 }
                                 .frame(width: 80, alignment: .trailing)
@@ -448,7 +530,7 @@ struct AnalysisTabView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
                 )
-                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisRiseTimeConstant)-\(parameters.analysisFallTimeConstant)-\(parameters.analysisFIRCoverage)-\(simulationData.percentChangeMetric)")
+                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisRiseTimeConstant)-\(parameters.analysisFallTimeConstant)-\(parameters.analysisFIRCoverage)-\(parameters.analysisFIRResponseMethodString)-\(simulationData.percentChangeMetric)")
                 
                 // Model Information tooltip
                 HStack {
