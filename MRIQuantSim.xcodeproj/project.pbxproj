@@ -278,12 +278,14 @@
 /* Begin PBXShellScriptBuildPhase section */
 		8AF71F002DAB31D9004EE1B3 /* Clear Help System Cache */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/MRIQuantSim/Resources/MRIQuantSim.help/Contents/Resources/en.lproj/index.html",
 			);
 			name = "Clear Help System Cache";
 			outputFileListPaths = (
@@ -292,7 +294,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "#!/usr/bin/env bash\n\n# 📘 Smart Help Book Cache Management Script\n\n# This script:\n# - Computes a hash of your Help Book source files\n# - Only clears the Help Viewer cache if the contents have changed\n# - Does not require Xcode's dependency tracking or output files\n\nHELP_BOOK_DIR=\"${SRCROOT}/MRIQuantSimHelp.help\"\nCACHE_DIR=\"$HOME/Library/Group Containers/group.com.apple.helpviewer.content/Library/Caches\"\nCACHE_PREFIX=\"net.endoquant.MRIQuantSim.net.endoquant.MRIQuantSim.help\"\nSTAMP_FILE=\"$BUILD_DIR/help_cache_last_hash.txt\"\n\necho \"📘 [Help Cache Script] Checking for Help Book changes...\"\n\n# Compute a hash of the .html and .plist files in the .help bundle\nCURRENT_HASH=$(find \"$HELP_BOOK_DIR\" -type f \\( -name \"*.html\" -o -name \"*.plist\" \\) -exec md5 -q {} \\; | sort | md5)\n\n# Read previously saved hash\nif [[ -f \"$STAMP_FILE\" ]]; then\n  PREV_HASH=$(cat \"$STAMP_FILE\")\nelse\n  PREV_HASH=\"\"\nfi\n\n# Compare hashes and clear cache if different\nif [[ \"$CURRENT_HASH\" != \"$PREV_HASH\" ]]; then\n  echo \"🔁 Help Book has changed — clearing Help Viewer cache.\"\n\n  shopt -s nullglob\n  MATCHES=(\"$CACHE_DIR\"/\"$CACHE_PREFIX\"*)\n  shopt -u nullglob\n\n  if [ ${#MATCHES[@]} -eq 0 ]; then\n    echo \"✅ No cached Help Books found.\"\n  else\n    for path in \"${MATCHES[@]}\"; do\n      BASENAME=\"$(basename \"$path\")\"\n      DEST=\"$HOME/.Trash/${BASENAME}-$(date +%Y%m%d-%H%M%S)\"\n      echo \"🗑️  Moving cached Help Book → Trash: $DEST\"\n      mv \"$path\" \"$DEST\"\n    done\n  fi\n\n  echo \"🛑 Restarting Help Viewer cache daemon...\"\n  killall -9 helpd 2>/dev/null || echo \"ℹ️ helpd not running.\"\n\n  echo \"$CURRENT_HASH\" > \"$STAMP_FILE\"\n  echo \"✅ Cache cleared and hash updated.\"\nelse\n  echo \"✅ Help Book has not changed — skipping cache removal.\"\nfi\n";
+			shellScript = "#!/usr/bin/env bash\n\n# 📘 Simple Help Book Cache Cleaner for macOS 15+ (Xcode-safe)\n\n# For proper dependency tracking, you must add any source files in the help bundle under the \"Input Files\" section below.\n# Alternately, a clean build should always run this script.\n\nCACHE_DIR=\"$HOME/Library/Group Containers/group.com.apple.helpviewer.content/Library/Caches\"\nCACHE_PREFIX=\"net.endoquant.MRIQuantSim.net.endoquant.MRIQuantSim.help\"\n\necho \"📘 [Help Cache Script] Clearing Help Book cache...\"\n\n# Find and remove all matching cache directories\nshopt -s nullglob\nMATCHES=(\"$CACHE_DIR\"/\"$CACHE_PREFIX\"*)\nshopt -u nullglob\n\nif [ ${#MATCHES[@]} -eq 0 ]; then\n  echo \"ℹ️ No matching cache files found.\"\nelse\n  for path in \"${MATCHES[@]}\"; do\n    echo \"🗑️ Removing cached Help Book: $(basename \"$path\")\"\n    rm -rf \"$path\"\n  done\n  echo \"✅ Cache cleared successfully.\"\nfi\n\n# Restart helpd to ensure clean state\nkillall -9 helpd 2>/dev/null || echo \"ℹ️ helpd not running.\"\n\necho \"✅ Help Book cache cleaning completed.\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
