@@ -109,11 +109,12 @@ struct AnalysisTabView: View {
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 12) {
-                                // Slider with appropriate range and step
+                                // Slider with range from parameter metadata
+                                let metadata = parameters.getParameterMetadata(forParameter: "Rise Time Constant (s)")
                                 Slider(
                                     value: $parameters.analysisRiseTimeConstant,
-                                    in: 1.0...30.0,
-                                    step: 1.0
+                                    in: metadata.minValue...metadata.maxValue,
+                                    step: metadata.step
                                 )
                                 .onChange(of: parameters.analysisRiseTimeConstant) { _, _ in
                                     onParameterChanged()
@@ -139,7 +140,7 @@ struct AnalysisTabView: View {
                                 
                                 // Reset button - to the right of the text field
                                 Button(action: {
-                                    parameters.analysisRiseTimeConstant = 10.0 // Default value
+                                    parameters.analysisRiseTimeConstant = parameters.getParameterMetadata(forParameter: "Rise Time Constant (s)").defaultValue
                                     onParameterChanged()
                                     onForceRefresh()
                                 }) {
@@ -160,11 +161,12 @@ struct AnalysisTabView: View {
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 12) {
-                                // Slider with appropriate range and step
+                                // Slider with range from parameter metadata
+                                let metadata = parameters.getParameterMetadata(forParameter: "Fall Time Constant (s)")
                                 Slider(
                                     value: $parameters.analysisFallTimeConstant,
-                                    in: 1.0...30.0,
-                                    step: 1.0
+                                    in: metadata.minValue...metadata.maxValue,
+                                    step: metadata.step
                                 )
                                 .onChange(of: parameters.analysisFallTimeConstant) { _, _ in
                                     onParameterChanged()
@@ -190,7 +192,7 @@ struct AnalysisTabView: View {
                                 
                                 // Reset button - to the right of the text field
                                 Button(action: {
-                                    parameters.analysisFallTimeConstant = 5.0 // Default value
+                                    parameters.analysisFallTimeConstant = parameters.getParameterMetadata(forParameter: "Fall Time Constant (s)").defaultValue
                                     onParameterChanged()
                                     onForceRefresh()
                                 }) {
