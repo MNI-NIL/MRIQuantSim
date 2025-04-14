@@ -297,7 +297,8 @@ struct ParametersTabView: View {
                             .foregroundColor(.secondary)
                         
                         Picker("", selection: $parameters.responseShapeType) {
-                            ForEach(ResponseShapeType.allCases, id: \.self) { shapeType in
+                            // Filter out FIR from simulation phase - only show Boxcar and Exponential
+                            ForEach(ResponseShapeType.allCases.filter { $0 != .fir }, id: \.self) { shapeType in
                                 Text(shapeType.rawValue).tag(shapeType)
                             }
                         }

@@ -59,7 +59,38 @@ struct SignalGraphView: View {
     
     private var chartView: some View {
         Chart {
-            // First render all line-based series
+            // First render any time window markers if present
+            ForEach(0..<visibleSeries.count, id: \.self) { index in
+                let series = visibleSeries[index]
+                
+                // Only render markers for the first visible series (to avoid duplicates)
+                if index == 0, let markers = series.timeWindowMarkers {
+                    ForEach(0..<markers.count, id: \.self) { markerIndex in
+                        let marker = markers[markerIndex]
+                        
+                        // Draw a rectangle area for the time window
+                        RectangleMark(
+                            xStart: .value("Window Start", marker.blockStartTime + marker.startOffset),
+                            xEnd: .value("Window End", marker.blockStartTime + marker.endOffset),
+                            yStart: .value("Min Y", calculateYRange().lowerBound),
+                            yEnd: .value("Max Y", calculateYRange().upperBound)
+                        )
+                        .foregroundStyle(marker.color.opacity(marker.opacity))
+                        .annotation(position: .top, alignment: .center) {
+                            if markerIndex == 0 { // Only show annotation for first marker
+                                Text("Time Window")
+                                    .font(.caption2)
+                                    .foregroundColor(marker.color)
+                                    .padding(2)
+                                    .background(Color.white.opacity(0.7))
+                                    .cornerRadius(2)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // Second render all line-based series
             ForEach(0..<visibleSeries.count, id: \.self) { index in
                 let series = visibleSeries[index]
                 

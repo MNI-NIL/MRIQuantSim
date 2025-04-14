@@ -8,6 +8,24 @@
 import Foundation
 import SwiftUI
 
+// Structure for time window marker visualization
+struct TimeWindowMarker {
+    let blockStartTime: Double  // When the block starts
+    let startOffset: Double     // Window start offset from block start
+    let endOffset: Double       // Window end offset from block start
+    let color: Color            // Color of the marker
+    let opacity: Double         // Opacity of the marker
+    
+    init(blockStartTime: Double, startOffset: Double, endOffset: Double, 
+         color: Color = .blue, opacity: Double = 0.2) {
+        self.blockStartTime = blockStartTime
+        self.startOffset = startOffset
+        self.endOffset = endOffset
+        self.color = color
+        self.opacity = opacity
+    }
+}
+
 // Model structure for time series data
 struct TimeSeriesData: Identifiable {
     let id = UUID()
@@ -21,6 +39,7 @@ struct TimeSeriesData: Identifiable {
     let symbolSize: Double
     var showConnectingLine: Bool
     let connectingLineColor: Color?
+    var timeWindowMarkers: [TimeWindowMarker]?
     
     init(
         title: String,
@@ -32,7 +51,8 @@ struct TimeSeriesData: Identifiable {
         lineWidth: Double = 2.0,
         symbolSize: Double = 30.0,
         showConnectingLine: Bool = true,
-        connectingLineColor: Color? = nil
+        connectingLineColor: Color? = nil,
+        timeWindowMarkers: [TimeWindowMarker]? = nil
     ) {
         self.title = title
         self.xValues = xValues
@@ -44,6 +64,7 @@ struct TimeSeriesData: Identifiable {
         self.symbolSize = symbolSize
         self.showConnectingLine = showConnectingLine
         self.connectingLineColor = connectingLineColor
+        self.timeWindowMarkers = timeWindowMarkers
     }
 }
 
@@ -63,12 +84,144 @@ class SimulationData: ObservableObject {
     @Published var percentChangeMetric: Double = 0.0
     @Published var signalToNoiseRatio: Double = 0.0
     @Published var contrastToNoiseRatio: Double = 0.0
+    @Published var firResponseMagnitude: Double = 0.0 // Store calculated FIR response magnitude
+    @Published var firTimeToMaxResponse: Double = 0.0 // Store time to max response for FIR
+    
+    // Enum for FIR response magnitude calculation methods
+    enum FIRResponseMethod {
+        case maximum        // Use the maximum beta value
+        case mean           // Use the mean of all beta values
+        case meanPositive   // Mean of all positive beta values
+        case timeWindow(start: Double, end: Double) // Average beta values within a time window
+    }
     
     // Store normalized noise values (mean 0, std 1) separately so they can be reused
     private var mriNormalizedNoiseValues: [Double] = []
     
     // Store random phase offset for CO2 variance
     private var co2VariancePhaseOffset: Double = 0.0
+    
+    // Storage for FIR response method - this will be set from the parameters
+    private var firResponseMethod: FIRResponseMethod = .maximum
+    
+    // Calculate FIR response magnitude with specified method
+    func calculateFIRResponseMagnitude(
+        parameters: SimulationParameters,
+        method: FIRResponseMethod? = nil,
+        firRegressorCount: Int? = nil
+    ) -> Double {
+        // Use provided method or default
+        let method = method ?? firResponseMethod
+        
+        // Calculate FIR regressor count if not provided
+        let firCount = firRegressorCount ?? {
+            let samplesPerSecond = 1.0 / parameters.mriSamplingInterval
+            return Int(parameters.analysisFIRCoverage * samplesPerSecond)
+        }()
+        
+        // Make sure we have valid beta parameters and FIR count
+        guard !betaParams.isEmpty && firCount > 0 else {
+            return 0.0
+        }
+        
+        // Calculate response magnitude based on selected method
+        switch method {
+        case .maximum:
+            // Find the maximum beta value
+            var maxBeta = 0.0
+            var maxIndex = 0
+            
+            for i in 0..<firCount {
+                if i < betaParams.count {
+                    let betaValue = abs(betaParams[i])
+                    if betaValue > maxBeta {
+                        maxBeta = betaValue
+                        maxIndex = i
+                    }
+                }
+            }
+            
+            // Store the time to max response (useful metadata for this method)
+            firTimeToMaxResponse = Double(maxIndex) * parameters.mriSamplingInterval
+            
+            return maxBeta
+            
+        case .mean:
+            // Calculate mean of all FIR beta values
+            var sum = 0.0
+            var count = 0
+            
+            for i in 0..<firCount {
+                if i < betaParams.count {
+                    sum += abs(betaParams[i])
+                    count += 1
+                }
+            }
+            
+            return count > 0 ? sum / Double(count) : 0.0
+            
+        case .meanPositive:
+            // Mean of positive FIR beta values
+            var sum = 0.0
+            var positiveCount = 0
+            
+            for i in 0..<firCount {
+                if i < betaParams.count && betaParams[i] > 0 {
+                    sum += betaParams[i]
+                    positiveCount += 1
+                }
+            }
+            
+            // Normalize by number of positive regressors
+            return positiveCount > 0 ? sum / Double(positiveCount) : 0.0
+            
+        case .timeWindow(let startTime, let endTime):
+            // Calculate mean beta within a time window
+            var sum = 0.0
+            var count = 0
+            
+            // Convert time to indices
+            let startIndex = Int(startTime / parameters.mriSamplingInterval)
+            let endIndex = Int(endTime / parameters.mriSamplingInterval)
+            
+            // Make sure indices are within range
+            let validStart = max(0, min(startIndex, firCount - 1))
+            let validEnd = max(validStart, min(endIndex, firCount - 1))
+            
+            // Calculate mean within window
+            for i in validStart...validEnd {
+                if i < betaParams.count {
+                    sum += abs(betaParams[i])
+                    count += 1
+                }
+            }
+            
+            return count > 0 ? sum / Double(count) : 0.0
+        }
+    }
+    
+    // Set the FIR response method to use (from a string method name)
+    func setFIRResponseMethod(methodName: String, timeWindowStart: Double = 10.0, timeWindowEnd: Double = 30.0) {
+        // Map from string to our internal enum
+        if methodName == "Maximum Value" {
+            firResponseMethod = .maximum
+        } else if methodName == "Mean Value" {
+            firResponseMethod = .mean
+        } else if methodName == "Mean of Positive Values" {
+            firResponseMethod = .meanPositive
+        } else if methodName == "Time Window" {
+            // For Time Window method, use provided start and end times
+            firResponseMethod = .timeWindow(start: timeWindowStart, end: timeWindowEnd)
+        } else {
+            // Default to maximum if method not recognized
+            firResponseMethod = .maximum
+        }
+        
+        // Recalculate FIR response magnitude if we have beta parameters
+        if !betaParams.isEmpty {
+            firResponseMagnitude = calculateFIRResponseMagnitude(parameters: SimulationParameters())
+        }
+    }
     
     // Helper methods to create TimeSeriesData objects
     func getCO2SeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
@@ -112,6 +265,34 @@ class SimulationData: ObservableObject {
     func getMRISeriesData(parameters: SimulationParameters) -> [TimeSeriesData] {
         var seriesData: [TimeSeriesData] = []
         
+        // Create time window markers if using FIR time window method
+        var timeWindowMarkers: [TimeWindowMarker]? = nil
+        if parameters.analysisModelType == .fir && parameters.analysisFIRResponseMethod == .timeWindow {
+            timeWindowMarkers = []
+            
+            // Find block onset times (for odd-numbered blocks which are the stimulus blocks)
+            let blockDuration = 60.0 // 1 minute blocks
+            let totalDuration = 300.0 // 5 minutes total
+            
+            // Calculate block start times
+            for blockNumber in 0...4 { // 5 blocks in 5 minutes (0-based indexing)
+                let blockStartTime = Double(blockNumber) * blockDuration
+                
+                // Only add markers for stimulus blocks (odd-numbered blocks)
+                if blockNumber % 2 == 1 && blockStartTime < totalDuration {
+                    timeWindowMarkers?.append(
+                        TimeWindowMarker(
+                            blockStartTime: blockStartTime,
+                            startOffset: parameters.analysisFIRTimeWindowStart,
+                            endOffset: parameters.analysisFIRTimeWindowEnd,
+                            color: .blue,
+                            opacity: 0.15
+                        )
+                    )
+                }
+            }
+        }
+        
         // Raw MRI signal
         if !mriTimePoints.isEmpty && !mriRawSignal.isEmpty {
             let count = min(mriTimePoints.count, mriRawSignal.count)
@@ -120,7 +301,8 @@ class SimulationData: ObservableObject {
                 xValues: Array(mriTimePoints.prefix(count)),
                 yValues: Array(mriRawSignal.prefix(count)),
                 color: .blue,
-                isVisible: parameters.showMRIRaw
+                isVisible: parameters.showMRIRaw,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -132,7 +314,8 @@ class SimulationData: ObservableObject {
                 xValues: Array(mriTimePoints.prefix(count)),
                 yValues: Array(mriModeledSignal.prefix(count)),
                 color: .orange,
-                isVisible: parameters.showModelOverlay
+                isVisible: parameters.showModelOverlay,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -144,7 +327,8 @@ class SimulationData: ObservableObject {
                 xValues: Array(mriTimePoints.prefix(count)),
                 yValues: Array(mriDetrendedSignal.prefix(count)),
                 color: .green,
-                isVisible: parameters.showMRIDetrended
+                isVisible: parameters.showMRIDetrended,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -158,7 +342,8 @@ class SimulationData: ObservableObject {
                 color: .purple,
                 showPoints: true,
                 isVisible: parameters.showResidualError,
-                symbolSize: 20
+                symbolSize: 20,
+                timeWindowMarkers: timeWindowMarkers
             ))
         }
         
@@ -251,6 +436,10 @@ class SimulationData: ObservableObject {
                             // Fallback to boxcar if time constant is invalid
                             responseFactor = 1.0
                         }
+                        
+                    case .fir:
+                        // For FIR, just use a boxcar (simple step) response for the simulation
+                        responseFactor = 1.0
                     }
                 } else if blockNumber > 0 && time < totalDuration {
                     // If we're in a baseline block after an enriched block, apply exponential decay
@@ -349,6 +538,10 @@ class SimulationData: ObservableObject {
                         // Fallback to boxcar if time constant is invalid
                         responseFactor = 1.0
                     }
+                    
+                case .fir:
+                    // For FIR, just use a boxcar (simple step) response for the simulation
+                    responseFactor = 1.0
                 }
             } else if blockNumber > 0 && time < totalDuration {
                 // If we're in a baseline block after an enriched block, apply exponential decay if needed
@@ -359,6 +552,8 @@ class SimulationData: ObservableObject {
                         responseFactor = exp(-timeInBlock / fallTimeConstant)
                     }
                 }
+                // For FIR model in baseline blocks, we don't need special handling
+                // as the FIR regressors handle the shape in the analysis stage
             }
             
             // For the minCO2, use a simple boxcar function (binary transition)
@@ -479,6 +674,10 @@ class SimulationData: ObservableObject {
                         // Fallback to boxcar if time constant is invalid
                         responseFactor = 1.0
                     }
+                    
+                case .fir:
+                    // For FIR, just use a boxcar (simple step) response for the simulation
+                    responseFactor = 1.0
                 }
             } else if blockNumber > 0 && time < totalDuration {
                 // If we're in a baseline block after an enriched block, apply exponential decay
@@ -489,6 +688,8 @@ class SimulationData: ObservableObject {
                         responseFactor = exp(-timeInBlock / fallTimeConstant)
                     }
                 }
+                // For FIR model in baseline blocks, we don't need special handling
+                // as the FIR regressors handle the shape in the analysis stage
             }
             
             // Add scaled response to the base signal
@@ -634,59 +835,82 @@ class SimulationData: ObservableObject {
         // Generate MRI block pattern at MRI sampling rate with the specified analysis model
         mriBlockPattern = Array(repeating: 0.0, count: mriTimePoints.count)
         
-        // Generate the block pattern based on analysis model type
-        for i in 0..<mriTimePoints.count {
-            let time = mriTimePoints[i]
-            
-            // Skip if outside simulation time
-            if time >= totalDuration {
-                continue
-            }
-            
-            // Determine current block and time within this block
-            let blockNumber = Int(time / blockDuration)
-            let isEnrichedBlock = blockNumber % 2 == 1
-            let timeInBlock = time - (Double(blockNumber) * blockDuration)
-            
-            // Calculate response factor (0.0-1.0) based on selected analysis model
-            var responseFactor = 0.0
-            
-            if isEnrichedBlock {
-                // We're in an enriched block
-                switch parameters.analysisModelType {
-                case .boxcar:
-                    // Simple step response (boxcar)
-                    responseFactor = 1.0
-                    
-                case .exponential:
-                    // Exponential approach to plateau during rising phase
-                    let riseTimeConstant = parameters.analysisRiseTimeConstant
-                    if riseTimeConstant > 0 {
-                        responseFactor = 1.0 - exp(-timeInBlock / riseTimeConstant)
-                    } else {
-                        // Fallback to boxcar if time constant is invalid
+        // For FIR model, we'll only use the block pattern for visualization
+        // The actual FIR regressors are generated in performDetrendingAnalysis
+        if parameters.analysisModelType != .fir {
+            // Generate the block pattern based on analysis model type
+            for i in 0..<mriTimePoints.count {
+                let time = mriTimePoints[i]
+                
+                // Skip if outside simulation time
+                if time >= totalDuration {
+                    continue
+                }
+                
+                // Determine current block and time within this block
+                let blockNumber = Int(time / blockDuration)
+                let isEnrichedBlock = blockNumber % 2 == 1
+                let timeInBlock = time - (Double(blockNumber) * blockDuration)
+                
+                // Calculate response factor (0.0-1.0) based on selected analysis model
+                var responseFactor = 0.0
+                
+                if isEnrichedBlock {
+                    // We're in an enriched block
+                    switch parameters.analysisModelType {
+                    case .boxcar:
+                        // Simple step response (boxcar)
+                        responseFactor = 1.0
+                        
+                    case .exponential:
+                        // Exponential approach to plateau during rising phase
+                        let riseTimeConstant = parameters.analysisRiseTimeConstant
+                        if riseTimeConstant > 0 {
+                            responseFactor = 1.0 - exp(-timeInBlock / riseTimeConstant)
+                        } else {
+                            // Fallback to boxcar if time constant is invalid
+                            responseFactor = 1.0
+                        }
+                    case .fir:
+                        // This should not be reached since we check for FIR above
                         responseFactor = 1.0
                     }
-                }
-            } else if blockNumber > 0 {
-                // If we're in a baseline block after an enriched block, apply exponential decay
-                if parameters.analysisModelType == .exponential {
-                    let fallTimeConstant = parameters.analysisFallTimeConstant
-                    if fallTimeConstant > 0 {
-                        // Calculate time since end of last enriched block
-                        responseFactor = exp(-timeInBlock / fallTimeConstant)
+                } else if blockNumber > 0 {
+                    // If we're in a baseline block after an enriched block, apply exponential decay
+                    if parameters.analysisModelType == .exponential {
+                        let fallTimeConstant = parameters.analysisFallTimeConstant
+                        if fallTimeConstant > 0 {
+                            // Calculate time since end of last enriched block
+                            responseFactor = exp(-timeInBlock / fallTimeConstant)
+                        }
                     }
                 }
+                
+                // Store the response factor as the block pattern value
+                mriBlockPattern[i] = responseFactor
             }
-            
-            // Store the response factor as the block pattern value
-            mriBlockPattern[i] = responseFactor
+        } else {
+            // For FIR model, we'll just use a boxcar for visualization purposes
+            for i in 0..<mriTimePoints.count {
+                let time = mriTimePoints[i]
+                
+                // Skip if outside simulation time
+                if time >= totalDuration {
+                    continue
+                }
+                
+                // Create simple boxcar pattern for visualization
+                let blockNumber = Int(time / blockDuration)
+                let isEnrichedBlock = blockNumber % 2 == 1
+                mriBlockPattern[i] = isEnrichedBlock ? 1.0 : 0.0
+            }
         }
     }
     
     private func performDetrendingAnalysis(parameters: SimulationParameters) {
         // Construct design matrix for MRI signal
         var designMatrix: [[Double]] = []
+        var firRegressorCount = 0
         
         // Check if any model term is included
         let hasAnyModelTerm = parameters.includeConstantTerm || 
@@ -706,8 +930,78 @@ class SimulationData: ObservableObject {
             return
         }
         
-        // Add block pattern (stimulus regressor)
-        designMatrix.append(mriBlockPattern)
+        // Handle the response regressors based on model type
+        if parameters.analysisModelType == .fir {
+            // For FIR model, create multiple stimulus regressors, one for each time offset
+            
+            // First, create a basic boxcar pattern (block design)
+            var blockPattern = Array(repeating: 0.0, count: mriTimePoints.count)
+            for i in 0..<mriTimePoints.count {
+                if i < mriTimePoints.count {
+                    let time = mriTimePoints[i]
+                    // Skip if outside simulation time
+                    if time < totalDuration {
+                        let blockNumber = Int(time / blockDuration)
+                        blockPattern[i] = blockNumber % 2 == 1 ? 1.0 : 0.0
+                    }
+                }
+            }
+            
+            // Calculate the number of FIR regressors based on the coverage and sampling interval
+            let samplesPerSecond = 1.0 / parameters.mriSamplingInterval
+            let samplesInCoverage = Int(parameters.analysisFIRCoverage * samplesPerSecond)
+            firRegressorCount = samplesInCoverage
+            
+            // Calculate regressors based on coverage and sampling rate
+            
+            // Generate FIR regressors
+            // First, create a basic boxcar pattern (block design) to use as reference
+            var blockOnsets: [Int] = []
+            
+            // Find all block onset time points
+            for i in 0..<mriTimePoints.count {
+                let time = mriTimePoints[i]
+                if time >= totalDuration {
+                    continue
+                }
+                
+                // Check if this is the first time point in a stimulus block
+                let blockNumber = Int(time / blockDuration)
+                let blockStartTime = Double(blockNumber) * blockDuration
+                let isBlockStart = abs(time - blockStartTime) < parameters.mriSamplingInterval / 2
+                
+                // Only check for odd block numbers (stimulus blocks)
+                if isBlockStart && blockNumber % 2 == 1 {
+                    blockOnsets.append(i)
+                }
+            }
+            
+            // Store block onsets for FIR regressor generation
+            
+            // Generate FIR regressors
+            for offset in 0..<firRegressorCount {
+                var firRegressor = Array(repeating: 0.0, count: mriTimePoints.count)
+                
+                // For each block onset, mark the corresponding offset point as 1.0
+                for onsetIndex in blockOnsets {
+                    let targetIndex = onsetIndex + offset
+                    
+                    // Make sure we don't go beyond the array bounds
+                    if targetIndex < mriTimePoints.count {
+                        firRegressor[targetIndex] = 1.0
+                    }
+                }
+                
+                // Add this regressor to the design matrix
+                designMatrix.append(firRegressor)
+                
+                // Count non-zero elements in each regressor (useful for validation)
+                let _ = firRegressor.filter { $0 > 0 }.count
+            }
+        } else {
+            // For non-FIR models (Boxcar or Exponential), just add a single response regressor
+            designMatrix.append(mriBlockPattern)
+        }
         
         // Add constant term
         if parameters.includeConstantTerm {
@@ -750,24 +1044,102 @@ class SimulationData: ObservableObject {
         // Solve the GLM: Y = Xβ + ε
         betaParams = solveGLM(designMatrix: X, observedValues: mriRawSignal)
         
-        // Calculate percent change metric if we have the stimulus and constant terms
-        if betaParams.count >= 2 && parameters.includeConstantTerm {
-            let responseAmplitude = abs(betaParams[0])
-            let baseline = abs(betaParams[1])
-            percentChangeMetric = (responseAmplitude / baseline) * 100.0
+        // Calculate percent change metric based on model type
+        if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+            // Convert parameters FIR response method to our internal type
+            let methodString = parameters.analysisFIRResponseMethodString
+            
+            // Map from parameters enum to local enum
+            if methodString == "Maximum Value" {
+                firResponseMethod = .maximum
+            } else if methodString == "Mean Value" {
+                firResponseMethod = .mean
+            } else if methodString == "Mean of Positive Values" {
+                firResponseMethod = .meanPositive
+            } else if methodString == "Time Window" {
+                // For Time Window method, use start and end times from parameters
+                firResponseMethod = .timeWindow(start: parameters.analysisFIRTimeWindowStart, 
+                                              end: parameters.analysisFIRTimeWindowEnd)
+            } else {
+                // Default to maximum if method not recognized
+                firResponseMethod = .maximum
+            }
+            
+            // Calculate FIR response magnitude using the current method
+            firResponseMagnitude = calculateFIRResponseMagnitude(
+                parameters: parameters,
+                method: firResponseMethod,
+                firRegressorCount: firRegressorCount
+            )
+            
+            // Store FIR response information
+            // These details are used for reporting in the UI
+            
+            // Find constant term index (follows all the FIR regressors)
+            let constTermIndex = firRegressorCount
+            
+            // Calculate percent change if constant term is included
+            if parameters.includeConstantTerm && constTermIndex < betaParams.count {
+                let baseline = abs(betaParams[constTermIndex])
+                if baseline > 0 {
+                    percentChangeMetric = (firResponseMagnitude / baseline) * 100.0
+                } else {
+                    percentChangeMetric = 0.0
+                }
+            } else {
+                percentChangeMetric = 0.0
+            }
         } else {
-            percentChangeMetric = 0.0
+            // For Boxcar and Exponential models, use the standard approach
+            if betaParams.count >= 2 && parameters.includeConstantTerm {
+                let responseAmplitude = abs(betaParams[0])
+                let baseline = abs(betaParams[1])
+                percentChangeMetric = (responseAmplitude / baseline) * 100.0
+            } else {
+                percentChangeMetric = 0.0
+            }
         }
         
         // Generate modeled signal
         mriModeledSignal = Array(repeating: 0.0, count: mriTimePoints.count)
+        
         if !betaParams.isEmpty {
+            // For all model types, generate the true model fit first
+            // This gives the complete modeled signal with all components
             for i in 0..<mriTimePoints.count {
                 var modelValue = 0.0
                 for j in 0..<betaParams.count {
                     modelValue += betaParams[j] * X[i][j]
                 }
                 mriModeledSignal[i] = modelValue
+            }
+            
+            // For FIR model, we'll report additional information about response magnitudes
+            if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+                // Find the maximum FIR beta value like we did for percent change
+                var maxFirBeta = 0.0
+                var maxFirIndex = 0
+                var sumFirBetas = 0.0
+                
+                // Find the peak FIR beta and its index
+                for i in 0..<firRegressorCount {
+                    if i < betaParams.count {
+                        let betaValue = abs(betaParams[i])
+                        sumFirBetas += betaValue
+                        if betaValue > maxFirBeta {
+                            maxFirBeta = betaValue
+                            maxFirIndex = i
+                        }
+                    }
+                }
+                
+                // Compute what time offset this represents
+                let peakTimeOffset = Double(maxFirIndex) * parameters.mriSamplingInterval
+                
+                print("FIR visualization metrics:")
+                print("  - Max beta: \(maxFirBeta) at index \(maxFirIndex) (time = \(peakTimeOffset)s)")
+                print("  - Sum of all FIR betas: \(sumFirBetas)")
+                print("  - Average of FIR betas: \(sumFirBetas/Double(firRegressorCount))")
             }
         }
         
@@ -779,18 +1151,43 @@ class SimulationData: ObservableObject {
         
         // Generate detrended signal by removing drift components
         mriDetrendedSignal = Array(repeating: 0.0, count: mriTimePoints.count)
-        if betaParams.count > 2 {
-            for i in 0..<mriTimePoints.count {
-                var trendComponents = 0.0
-                // Start from j=2 to skip stimulus and constant terms
-                for j in 2..<betaParams.count {
-                    trendComponents += betaParams[j] * X[i][j]
+        
+        if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+            // For FIR model, drift terms start after all FIR regressors plus constant term
+            // First determine starting index for drift terms
+            let driftStartIndex = firRegressorCount + (parameters.includeConstantTerm ? 1 : 0)
+            
+            // Check if we have any drift terms
+            if betaParams.count > driftStartIndex {
+                for i in 0..<mriTimePoints.count {
+                    var trendComponents = 0.0
+                    // Start from drift terms (after FIR regressors and constant)
+                    for j in driftStartIndex..<betaParams.count {
+                        trendComponents += betaParams[j] * X[i][j]
+                    }
+                    mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
                 }
-                mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
+                
+                // Subtract drift components from raw signal to get detrended signal
+            } else {
+                // If no drift components, detrended signal equals raw signal
+                mriDetrendedSignal = mriRawSignal
             }
         } else {
-            // If no drift components, detrended signal equals raw signal
-            mriDetrendedSignal = mriRawSignal
+            // For non-FIR models (Boxcar or Exponential)
+            if betaParams.count > 2 {
+                for i in 0..<mriTimePoints.count {
+                    var trendComponents = 0.0
+                    // Start from j=2 to skip stimulus and constant terms
+                    for j in 2..<betaParams.count {
+                        trendComponents += betaParams[j] * X[i][j]
+                    }
+                    mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
+                }
+            } else {
+                // If no drift components, detrended signal equals raw signal
+                mriDetrendedSignal = mriRawSignal
+            }
         }
         
         // Calculate SNR and CNR metrics
@@ -799,14 +1196,34 @@ class SimulationData: ObservableObject {
         
         // Signal is the constant term (baseline signal)
         var signal = 0.0
-        if parameters.includeConstantTerm && betaParams.count >= 2 {
-            signal = abs(betaParams[1]) // Second beta is constant term
-        }
-        
-        // Contrast is the first beta (response amplitude)
+        // Contrast is the response amplitude (different calculation based on model type)
         var contrast = 0.0
-        if !betaParams.isEmpty {
-            contrast = abs(betaParams[0]) // First beta is response amplitude
+        
+        if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+            // For FIR model, calculate differently
+            
+            // Signal is still the constant term, but its index depends on firRegressorCount
+            let constTermIndex = firRegressorCount
+            if parameters.includeConstantTerm && constTermIndex < betaParams.count {
+                signal = abs(betaParams[constTermIndex])
+            }
+            
+            // Contrast is the FIR response magnitude (already calculated)
+            contrast = firResponseMagnitude
+            
+            // Store signal and contrast values for SNR and CNR calculations
+        } else {
+            // For Boxcar and Exponential models
+            
+            // Signal is the constant term
+            if parameters.includeConstantTerm && betaParams.count >= 2 {
+                signal = abs(betaParams[1]) // Second beta is constant term
+            }
+            
+            // Contrast is the first beta
+            if !betaParams.isEmpty {
+                contrast = abs(betaParams[0]) // First beta is response amplitude
+            }
         }
         
         // Calculate Signal-to-Noise Ratio (SNR)
@@ -823,19 +1240,7 @@ class SimulationData: ObservableObject {
             contrastToNoiseRatio = 0.0
         }
         
-        print("Model terms:")
-        print("  - Constant: \(parameters.includeConstantTerm)")
-        print("  - Linear: \(parameters.includeLinearTerm)")
-        print("  - Quadratic: \(parameters.includeQuadraticTerm)")
-        print("  - Cubic: \(parameters.includeCubicTerm)")
-        print("MRI Series count: \(mriRawSignal.count)")
-        print("Calculated metrics:")
-        print("  - Signal: \(signal)")
-        print("  - Contrast: \(contrast)")
-        print("  - Noise RMS: \(noiseRMS)")
-        print("  - SNR: \(signalToNoiseRatio)")
-        print("  - CNR: \(contrastToNoiseRatio)")
-        print("  - % Change: \(percentChangeMetric)")
+        // Metrics calculation complete
     }
     
     // Calculate Root Mean Square (RMS) of a data array
