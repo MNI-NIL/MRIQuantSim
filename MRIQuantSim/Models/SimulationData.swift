@@ -251,6 +251,10 @@ class SimulationData: ObservableObject {
                             // Fallback to boxcar if time constant is invalid
                             responseFactor = 1.0
                         }
+                        
+                    case .fir:
+                        // For FIR, just use a boxcar (simple step) response for the simulation
+                        responseFactor = 1.0
                     }
                 } else if blockNumber > 0 && time < totalDuration {
                     // If we're in a baseline block after an enriched block, apply exponential decay
@@ -349,6 +353,10 @@ class SimulationData: ObservableObject {
                         // Fallback to boxcar if time constant is invalid
                         responseFactor = 1.0
                     }
+                    
+                case .fir:
+                    // For FIR, just use a boxcar (simple step) response for the simulation
+                    responseFactor = 1.0
                 }
             } else if blockNumber > 0 && time < totalDuration {
                 // If we're in a baseline block after an enriched block, apply exponential decay if needed
@@ -359,6 +367,8 @@ class SimulationData: ObservableObject {
                         responseFactor = exp(-timeInBlock / fallTimeConstant)
                     }
                 }
+                // For FIR model in baseline blocks, we don't need special handling
+                // as the FIR regressors handle the shape in the analysis stage
             }
             
             // For the minCO2, use a simple boxcar function (binary transition)
@@ -479,6 +489,10 @@ class SimulationData: ObservableObject {
                         // Fallback to boxcar if time constant is invalid
                         responseFactor = 1.0
                     }
+                    
+                case .fir:
+                    // For FIR, just use a boxcar (simple step) response for the simulation
+                    responseFactor = 1.0
                 }
             } else if blockNumber > 0 && time < totalDuration {
                 // If we're in a baseline block after an enriched block, apply exponential decay
@@ -489,6 +503,8 @@ class SimulationData: ObservableObject {
                         responseFactor = exp(-timeInBlock / fallTimeConstant)
                     }
                 }
+                // For FIR model in baseline blocks, we don't need special handling
+                // as the FIR regressors handle the shape in the analysis stage
             }
             
             // Add scaled response to the base signal
@@ -634,59 +650,82 @@ class SimulationData: ObservableObject {
         // Generate MRI block pattern at MRI sampling rate with the specified analysis model
         mriBlockPattern = Array(repeating: 0.0, count: mriTimePoints.count)
         
-        // Generate the block pattern based on analysis model type
-        for i in 0..<mriTimePoints.count {
-            let time = mriTimePoints[i]
-            
-            // Skip if outside simulation time
-            if time >= totalDuration {
-                continue
-            }
-            
-            // Determine current block and time within this block
-            let blockNumber = Int(time / blockDuration)
-            let isEnrichedBlock = blockNumber % 2 == 1
-            let timeInBlock = time - (Double(blockNumber) * blockDuration)
-            
-            // Calculate response factor (0.0-1.0) based on selected analysis model
-            var responseFactor = 0.0
-            
-            if isEnrichedBlock {
-                // We're in an enriched block
-                switch parameters.analysisModelType {
-                case .boxcar:
-                    // Simple step response (boxcar)
-                    responseFactor = 1.0
-                    
-                case .exponential:
-                    // Exponential approach to plateau during rising phase
-                    let riseTimeConstant = parameters.analysisRiseTimeConstant
-                    if riseTimeConstant > 0 {
-                        responseFactor = 1.0 - exp(-timeInBlock / riseTimeConstant)
-                    } else {
-                        // Fallback to boxcar if time constant is invalid
+        // For FIR model, we'll only use the block pattern for visualization
+        // The actual FIR regressors are generated in performDetrendingAnalysis
+        if parameters.analysisModelType != .fir {
+            // Generate the block pattern based on analysis model type
+            for i in 0..<mriTimePoints.count {
+                let time = mriTimePoints[i]
+                
+                // Skip if outside simulation time
+                if time >= totalDuration {
+                    continue
+                }
+                
+                // Determine current block and time within this block
+                let blockNumber = Int(time / blockDuration)
+                let isEnrichedBlock = blockNumber % 2 == 1
+                let timeInBlock = time - (Double(blockNumber) * blockDuration)
+                
+                // Calculate response factor (0.0-1.0) based on selected analysis model
+                var responseFactor = 0.0
+                
+                if isEnrichedBlock {
+                    // We're in an enriched block
+                    switch parameters.analysisModelType {
+                    case .boxcar:
+                        // Simple step response (boxcar)
+                        responseFactor = 1.0
+                        
+                    case .exponential:
+                        // Exponential approach to plateau during rising phase
+                        let riseTimeConstant = parameters.analysisRiseTimeConstant
+                        if riseTimeConstant > 0 {
+                            responseFactor = 1.0 - exp(-timeInBlock / riseTimeConstant)
+                        } else {
+                            // Fallback to boxcar if time constant is invalid
+                            responseFactor = 1.0
+                        }
+                    case .fir:
+                        // This should not be reached since we check for FIR above
                         responseFactor = 1.0
                     }
-                }
-            } else if blockNumber > 0 {
-                // If we're in a baseline block after an enriched block, apply exponential decay
-                if parameters.analysisModelType == .exponential {
-                    let fallTimeConstant = parameters.analysisFallTimeConstant
-                    if fallTimeConstant > 0 {
-                        // Calculate time since end of last enriched block
-                        responseFactor = exp(-timeInBlock / fallTimeConstant)
+                } else if blockNumber > 0 {
+                    // If we're in a baseline block after an enriched block, apply exponential decay
+                    if parameters.analysisModelType == .exponential {
+                        let fallTimeConstant = parameters.analysisFallTimeConstant
+                        if fallTimeConstant > 0 {
+                            // Calculate time since end of last enriched block
+                            responseFactor = exp(-timeInBlock / fallTimeConstant)
+                        }
                     }
                 }
+                
+                // Store the response factor as the block pattern value
+                mriBlockPattern[i] = responseFactor
             }
-            
-            // Store the response factor as the block pattern value
-            mriBlockPattern[i] = responseFactor
+        } else {
+            // For FIR model, we'll just use a boxcar for visualization purposes
+            for i in 0..<mriTimePoints.count {
+                let time = mriTimePoints[i]
+                
+                // Skip if outside simulation time
+                if time >= totalDuration {
+                    continue
+                }
+                
+                // Create simple boxcar pattern for visualization
+                let blockNumber = Int(time / blockDuration)
+                let isEnrichedBlock = blockNumber % 2 == 1
+                mriBlockPattern[i] = isEnrichedBlock ? 1.0 : 0.0
+            }
         }
     }
     
     private func performDetrendingAnalysis(parameters: SimulationParameters) {
         // Construct design matrix for MRI signal
         var designMatrix: [[Double]] = []
+        var firRegressorCount = 0
         
         // Check if any model term is included
         let hasAnyModelTerm = parameters.includeConstantTerm || 
@@ -706,8 +745,79 @@ class SimulationData: ObservableObject {
             return
         }
         
-        // Add block pattern (stimulus regressor)
-        designMatrix.append(mriBlockPattern)
+        // Handle the response regressors based on model type
+        if parameters.analysisModelType == .fir {
+            // For FIR model, create multiple stimulus regressors, one for each time offset
+            
+            // First, create a basic boxcar pattern (block design)
+            var blockPattern = Array(repeating: 0.0, count: mriTimePoints.count)
+            for i in 0..<mriTimePoints.count {
+                if i < mriTimePoints.count {
+                    let time = mriTimePoints[i]
+                    // Skip if outside simulation time
+                    if time < totalDuration {
+                        let blockNumber = Int(time / blockDuration)
+                        blockPattern[i] = blockNumber % 2 == 1 ? 1.0 : 0.0
+                    }
+                }
+            }
+            
+            // Calculate the number of FIR regressors based on the coverage and sampling interval
+            let samplesPerSecond = 1.0 / parameters.mriSamplingInterval
+            let samplesInCoverage = Int(parameters.analysisFIRCoverage * samplesPerSecond)
+            firRegressorCount = samplesInCoverage
+            
+            print("FIR model: Creating \(firRegressorCount) regressors for \(parameters.analysisFIRCoverage)s coverage")
+            
+            // Generate FIR regressors
+            // First, create a basic boxcar pattern (block design) to use as reference
+            var blockOnsets: [Int] = []
+            
+            // Find all block onset time points
+            for i in 0..<mriTimePoints.count {
+                let time = mriTimePoints[i]
+                if time >= totalDuration {
+                    continue
+                }
+                
+                // Check if this is the first time point in a stimulus block
+                let blockNumber = Int(time / blockDuration)
+                let blockStartTime = Double(blockNumber) * blockDuration
+                let isBlockStart = abs(time - blockStartTime) < parameters.mriSamplingInterval / 2
+                
+                // Only check for odd block numbers (stimulus blocks)
+                if isBlockStart && blockNumber % 2 == 1 {
+                    blockOnsets.append(i)
+                }
+            }
+            
+            print("FIR model: Found \(blockOnsets.count) block onsets")
+            
+            // Generate FIR regressors
+            for offset in 0..<firRegressorCount {
+                var firRegressor = Array(repeating: 0.0, count: mriTimePoints.count)
+                
+                // For each block onset, mark the corresponding offset point as 1.0
+                for onsetIndex in blockOnsets {
+                    let targetIndex = onsetIndex + offset
+                    
+                    // Make sure we don't go beyond the array bounds
+                    if targetIndex < mriTimePoints.count {
+                        firRegressor[targetIndex] = 1.0
+                    }
+                }
+                
+                // Add this regressor to the design matrix
+                designMatrix.append(firRegressor)
+                
+                // Debug: Print non-zero elements in each regressor
+                let nonZeroCount = firRegressor.filter { $0 > 0 }.count
+                print("FIR regressor \(offset): has \(nonZeroCount) non-zero elements")
+            }
+        } else {
+            // For non-FIR models (Boxcar or Exponential), just add a single response regressor
+            designMatrix.append(mriBlockPattern)
+        }
         
         // Add constant term
         if parameters.includeConstantTerm {
@@ -750,13 +860,65 @@ class SimulationData: ObservableObject {
         // Solve the GLM: Y = Xβ + ε
         betaParams = solveGLM(designMatrix: X, observedValues: mriRawSignal)
         
-        // Calculate percent change metric if we have the stimulus and constant terms
-        if betaParams.count >= 2 && parameters.includeConstantTerm {
-            let responseAmplitude = abs(betaParams[0])
-            let baseline = abs(betaParams[1])
-            percentChangeMetric = (responseAmplitude / baseline) * 100.0
+        // Calculate percent change metric based on model type
+        if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+            // For FIR model, use the peak of the FIR beta parameters
+            // This better represents the maximum response, similar to boxcar/exponential
+            var maxFirBeta = 0.0
+            var firSum = 0.0
+            var nonZeroBetaCount = 0
+            
+            // Find the peak and also calculate sum for average
+            for i in 0..<firRegressorCount {
+                if i < betaParams.count {
+                    let betaValue = abs(betaParams[i])
+                    firSum += betaValue
+                    if betaValue > 0 {
+                        nonZeroBetaCount += 1
+                    }
+                    maxFirBeta = max(maxFirBeta, betaValue)
+                }
+            }
+            
+            // Calculate mean FIR response (avoid division by zero)
+            let meanFirResponse = nonZeroBetaCount > 0 ? firSum / Double(nonZeroBetaCount) : 0.0
+            
+            // Debug info
+            print("FIR model metrics:")
+            print("  - Max FIR beta: \(maxFirBeta)")
+            print("  - Mean FIR beta: \(meanFirResponse)")
+            print("  - Non-zero beta count: \(nonZeroBetaCount) out of \(firRegressorCount)")
+            
+            // Find constant term index (follows all the FIR regressors)
+            let constTermIndex = firRegressorCount
+            
+            // Use the maximum FIR beta value for percent change calculation
+            // This is more comparable to the single beta from boxcar/exponential models
+            let responseAmplitude = maxFirBeta
+            
+            // Calculate percent change if constant term is included
+            if parameters.includeConstantTerm && constTermIndex < betaParams.count {
+                let baseline = abs(betaParams[constTermIndex])
+                if baseline > 0 {
+                    percentChangeMetric = (responseAmplitude / baseline) * 100.0
+                    print("  - Percent change: \(percentChangeMetric)%")
+                } else {
+                    percentChangeMetric = 0.0
+                    print("  - Percent change: 0% (baseline is zero)")
+                }
+            } else {
+                percentChangeMetric = 0.0
+                print("  - Percent change: 0% (no constant term)")
+            }
         } else {
-            percentChangeMetric = 0.0
+            // For Boxcar and Exponential models, use the standard approach
+            if betaParams.count >= 2 && parameters.includeConstantTerm {
+                let responseAmplitude = abs(betaParams[0])
+                let baseline = abs(betaParams[1])
+                percentChangeMetric = (responseAmplitude / baseline) * 100.0
+            } else {
+                percentChangeMetric = 0.0
+            }
         }
         
         // Generate modeled signal
@@ -799,14 +961,46 @@ class SimulationData: ObservableObject {
         
         // Signal is the constant term (baseline signal)
         var signal = 0.0
-        if parameters.includeConstantTerm && betaParams.count >= 2 {
-            signal = abs(betaParams[1]) // Second beta is constant term
-        }
-        
-        // Contrast is the first beta (response amplitude)
+        // Contrast is the response amplitude (different calculation based on model type)
         var contrast = 0.0
-        if !betaParams.isEmpty {
-            contrast = abs(betaParams[0]) // First beta is response amplitude
+        
+        if parameters.analysisModelType == .fir && firRegressorCount > 0 {
+            // For FIR model, calculate differently
+            
+            // Signal is still the constant term, but its index depends on firRegressorCount
+            let constTermIndex = firRegressorCount
+            if parameters.includeConstantTerm && constTermIndex < betaParams.count {
+                signal = abs(betaParams[constTermIndex])
+            }
+            
+            // Contrast is the maximum of all FIR beta parameters
+            // This is more comparable to the single beta from boxcar/exponential models
+            var maxFirBeta = 0.0
+            for i in 0..<firRegressorCount {
+                if i < betaParams.count {
+                    let betaValue = abs(betaParams[i])
+                    maxFirBeta = max(maxFirBeta, betaValue)
+                }
+            }
+            contrast = maxFirBeta
+            
+            // Debug info for SNR and CNR
+            print("FIR model SNR/CNR:")
+            print("  - Signal (baseline): \(signal)")
+            print("  - Contrast (max beta): \(contrast)")
+            print("  - Noise RMS: \(noiseRMS)")
+        } else {
+            // For Boxcar and Exponential models
+            
+            // Signal is the constant term
+            if parameters.includeConstantTerm && betaParams.count >= 2 {
+                signal = abs(betaParams[1]) // Second beta is constant term
+            }
+            
+            // Contrast is the first beta
+            if !betaParams.isEmpty {
+                contrast = abs(betaParams[0]) // First beta is response amplitude
+            }
         }
         
         // Calculate Signal-to-Noise Ratio (SNR)

@@ -12,6 +12,7 @@ import SwiftData
 enum ResponseShapeType: String, Codable, CaseIterable {
     case boxcar = "Boxcar"
     case exponential = "Exponential"
+    case fir = "FIR"
     // Future shape types can be added here
 }
 
@@ -46,6 +47,7 @@ final class SimulationParameters {
     var analysisModelTypeString: String
     var analysisRiseTimeConstant: Double
     var analysisFallTimeConstant: Double
+    var analysisFIRCoverage: Double
     
     // Computed property for analysis model type
     @Transient
@@ -131,6 +133,7 @@ final class SimulationParameters {
         analysisModelTypeString = ResponseShapeType.exponential.rawValue
         analysisRiseTimeConstant = 10.0 // seconds
         analysisFallTimeConstant = 5.0 // seconds
+        analysisFIRCoverage = 90.0 // seconds - default FIR coverage duration
         
         // Noise Parameters
         co2VarianceFrequency = 0.05 // Hz
@@ -192,6 +195,7 @@ final class SimulationParameters {
         analysisModelTypeString = defaults.analysisModelTypeString
         analysisRiseTimeConstant = defaults.analysisRiseTimeConstant
         analysisFallTimeConstant = defaults.analysisFallTimeConstant
+        analysisFIRCoverage = defaults.analysisFIRCoverage
         
         // Noise Parameters
         co2VarianceFrequency = defaults.co2VarianceFrequency
@@ -241,6 +245,9 @@ final class SimulationParameters {
     // Function to get parameter metadata (default, range, step) for a parameter
     func getParameterMetadata(forParameter paramName: String) -> ParameterMetadata {
         switch paramName {
+        // FIR Model Parameters
+        case "FIR Coverage Duration (s)":
+            return ParameterMetadata(defaultValue: 90.0, minValue: 30.0, maxValue: 150.0, step: 10.0)
         // Signal Parameters
         case "CO₂ Sampling Rate (Hz)":
             return ParameterMetadata(defaultValue: 10.0, minValue: 1.0, maxValue: 20.0, step: 1.0)
@@ -348,6 +355,7 @@ final class SimulationParameters {
             analysisModelTypeString: analysisModelTypeString,
             analysisRiseTimeConstant: analysisRiseTimeConstant,
             analysisFallTimeConstant: analysisFallTimeConstant,
+            analysisFIRCoverage: analysisFIRCoverage,
             
             // Model terms
             includeConstantTerm: includeConstantTerm,
@@ -386,6 +394,7 @@ struct ParameterState: Equatable {
     let analysisModelTypeString: String
     let analysisRiseTimeConstant: Double
     let analysisFallTimeConstant: Double
+    let analysisFIRCoverage: Double
     
     // Computed properties for convenience
     var responseShapeType: ResponseShapeType {
@@ -518,7 +527,8 @@ struct ParameterState: Equatable {
         let analysisParamsChanged = 
             analysisModelTypeString != previous.analysisModelTypeString ||
             analysisRiseTimeConstant != previous.analysisRiseTimeConstant ||
-            analysisFallTimeConstant != previous.analysisFallTimeConstant;
+            analysisFallTimeConstant != previous.analysisFallTimeConstant ||
+            analysisFIRCoverage != previous.analysisFIRCoverage;
             
         // And all other parameters remain the same
         return analysisParamsChanged &&

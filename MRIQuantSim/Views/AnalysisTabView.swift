@@ -99,8 +99,9 @@ struct AnalysisTabView: View {
                     .padding(.bottom, 4)
                 }
                 
-                // Only show time constants if exponential is selected
+                // Show model-specific parameters based on the selected model type
                 if parameters.analysisModelType == .exponential {
+                    // Exponential model parameters
                     VStack(alignment: .leading, spacing: 10) {
                         // Rise time constant with slider
                         VStack(alignment: .leading, spacing: 6) {
@@ -225,6 +226,68 @@ struct AnalysisTabView: View {
                             .buttonStyle(PlainButtonStyle())
                         }
                         .padding(.top, 8)
+                    }
+                } else if parameters.analysisModelType == .fir {
+                    // FIR model parameters
+                    VStack(alignment: .leading, spacing: 10) {
+                        // FIR coverage duration with slider
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("FIR Coverage Duration (s)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            HStack(spacing: 12) {
+                                // Slider with range from parameter metadata
+                                let metadata = parameters.getParameterMetadata(forParameter: "FIR Coverage Duration (s)")
+                                Slider(
+                                    value: $parameters.analysisFIRCoverage,
+                                    in: metadata.minValue...metadata.maxValue,
+                                    step: metadata.step
+                                )
+                                .onChange(of: parameters.analysisFIRCoverage) { _, _ in
+                                    onParameterChanged()
+                                    onForceRefresh() // Force immediate refresh
+                                }
+                                
+                                // Text field for precise input
+                                TextField("", value: $parameters.analysisFIRCoverage, format: .number)
+                                    .multilineTextAlignment(.trailing)
+                                    .frame(width: 70)
+                                    .padding(6)
+                                    .background(colorScheme == .dark ? Color(white: 0.15) : Color.white)
+                                    .foregroundColor(colorScheme == .dark ? Color.white : Color.black)
+                                    .cornerRadius(6)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 6)
+                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                                    )
+                                    .onSubmit { 
+                                        onParameterChanged() 
+                                        onForceRefresh() // Force immediate refresh
+                                    }
+                                
+                                // Reset button - to the right of the text field
+                                Button(action: {
+                                    parameters.analysisFIRCoverage = parameters.getParameterMetadata(forParameter: "FIR Coverage Duration (s)").defaultValue
+                                    onParameterChanged()
+                                    onForceRefresh()
+                                }) {
+                                    Image(systemName: "arrow.counterclockwise")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.accentColor)
+                                }
+                                .buttonStyle(BorderlessButtonStyle())
+                                .help("Reset to default value")
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        
+                        // Information about FIR model
+                        Text("The FIR model uses separate regressors for each time point after stimulus onset, allowing flexible modeling of the hemodynamic response shape. The coverage duration determines how far the model extends after stimulus onset.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.top, 4)
                     }
                 }
             }
@@ -385,7 +448,7 @@ struct AnalysisTabView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
                 )
-                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisRiseTimeConstant)-\(parameters.analysisFallTimeConstant)")
+                .id("modelResults-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisRiseTimeConstant)-\(parameters.analysisFallTimeConstant)-\(parameters.analysisFIRCoverage)-\(simulationData.percentChangeMetric)")
                 
                 // Model Information tooltip
                 HStack {
@@ -474,7 +537,7 @@ struct AnalysisTabView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
                 )
-                .id("snrCnrMetrics-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(simulationData.signalToNoiseRatio)-\(simulationData.contrastToNoiseRatio)")
+                .id("snrCnrMetrics-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(parameters.analysisModelTypeString)-\(parameters.analysisFIRCoverage)-\(simulationData.signalToNoiseRatio)-\(simulationData.contrastToNoiseRatio)")
                 
                 // SNR and CNR information tooltip
                 HStack {
@@ -503,33 +566,82 @@ struct AnalysisTabView: View {
     // Using ToggleButton instead of individual Toggle components
     
     private func betaParamName(index: Int) -> String {
-        // Determine included terms to map parameter indices to the correct names
-        let includedTerms = [
-            true, // Stimulus regressor is always included
-            parameters.includeConstantTerm,
-            parameters.includeLinearTerm,
-            parameters.includeQuadraticTerm,
-            parameters.includeCubicTerm
-        ]
-        
-        let allTerms = ["Stimulus Response", "Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
-        
-        // Count how many true values there are before 'index' in includedTerms
-        var includedIndex = 0
-        var trueCount = 0
-        
-        for i in 0..<includedTerms.count {
-            if includedTerms[i] {
-                if trueCount == index {
-                    includedIndex = i
-                    break
-                }
-                trueCount += 1
+        // For FIR model, handle differently since there are multiple response regressors
+        if parameters.analysisModelType == .fir {
+            // Calculate the number of FIR regressors
+            let samplesPerSecond = 1.0 / parameters.mriSamplingInterval
+            let samplesInCoverage = Int(parameters.analysisFIRCoverage * samplesPerSecond)
+            
+            // Check if this index corresponds to a FIR regressor
+            if index < samplesInCoverage {
+                // This is a FIR regressor
+                let timeOffset = Double(index) * parameters.mriSamplingInterval
+                return String(format: "FIR %.1fs", timeOffset)
             }
+            
+            // Offset the index to account for multiple FIR regressors
+            let adjustedIndex = index - samplesInCoverage
+            
+            // Handle other parameters (constant, drift terms)
+            let driftTerms = ["Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
+            let includedDriftTerms = [
+                parameters.includeConstantTerm,
+                parameters.includeLinearTerm,
+                parameters.includeQuadraticTerm,
+                parameters.includeCubicTerm
+            ]
+            
+            // Count through included drift terms to find the right one
+            var driftTermIndex = -1
+            var trueCount = -1
+            
+            for i in 0..<includedDriftTerms.count {
+                if includedDriftTerms[i] {
+                    trueCount += 1
+                    if trueCount == adjustedIndex {
+                        driftTermIndex = i
+                        break
+                    }
+                }
+            }
+            
+            // Return the appropriate drift term name if found
+            if driftTermIndex >= 0 && driftTermIndex < driftTerms.count {
+                return driftTerms[driftTermIndex]
+            }
+            
+            // Fallback for any other parameters
+            return "Parameter \(index)"
+        } else {
+            // For non-FIR models, use the original approach
+            // Determine included terms to map parameter indices to the correct names
+            let includedTerms = [
+                true, // Stimulus regressor is always included
+                parameters.includeConstantTerm,
+                parameters.includeLinearTerm,
+                parameters.includeQuadraticTerm,
+                parameters.includeCubicTerm
+            ]
+            
+            let allTerms = ["Stimulus Response", "Constant Term", "Linear Drift", "Quadratic Drift", "Cubic Drift"]
+            
+            // Count how many true values there are before 'index' in includedTerms
+            var includedIndex = 0
+            var trueCount = 0
+            
+            for i in 0..<includedTerms.count {
+                if includedTerms[i] {
+                    if trueCount == index {
+                        includedIndex = i
+                        break
+                    }
+                    trueCount += 1
+                }
+            }
+            
+            // Return the name for the included term at position 'index'
+            return includedIndex < allTerms.count ? allTerms[includedIndex] : "Parameter \(index)"
         }
-        
-        // Return the name for the included term at position 'index'
-        return includedIndex < allTerms.count ? allTerms[includedIndex] : "Parameter \(index)"
     }
     
     // MARK: - Helper methods
