@@ -312,11 +312,10 @@ struct AnalysisTabView: View {
                                         .foregroundColor(.secondary)
                                     
                                     HStack(spacing: 12) {
-                                        // Slider with range from 0 to coverage duration
+                                        // Slider with range from 0 to coverage duration (without tick marks)
                                         Slider(
                                             value: $parameters.analysisFIRTimeWindowStart,
-                                            in: 0...parameters.analysisFIRCoverage,
-                                            step: 1.0
+                                            in: 0...parameters.analysisFIRCoverage
                                         )
                                         .onChange(of: parameters.analysisFIRTimeWindowStart) { _, newValue in
                                             // Ensure start time is before end time
@@ -327,8 +326,8 @@ struct AnalysisTabView: View {
                                             onForceRefresh() // Force immediate refresh
                                         }
                                         
-                                        // Text field for precise input
-                                        TextField("", value: $parameters.analysisFIRTimeWindowStart, format: .number)
+                                        // Text field for precise input with one decimal place
+                                        TextField("", value: $parameters.analysisFIRTimeWindowStart, format: .number.precision(.fractionLength(1)))
                                             .multilineTextAlignment(.trailing)
                                             .frame(width: 70)
                                             .padding(6)
@@ -349,6 +348,19 @@ struct AnalysisTabView: View {
                                                 onParameterChanged() 
                                                 onForceRefresh() // Force immediate refresh
                                             }
+                                            
+                                        // Reset button
+                                        Button(action: {
+                                            parameters.analysisFIRTimeWindowStart = parameters.getParameterMetadata(forParameter: "FIR Time Window Start (s)").defaultValue
+                                            onParameterChanged()
+                                            onForceRefresh()
+                                        }) {
+                                            Image(systemName: "arrow.counterclockwise")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.accentColor)
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
+                                        .help("Reset to default value")
                                     }
                                 }
                                 .padding(.vertical, 4)
@@ -360,19 +372,18 @@ struct AnalysisTabView: View {
                                         .foregroundColor(.secondary)
                                     
                                     HStack(spacing: 12) {
-                                        // Slider with range from start to coverage duration
+                                        // Slider with range from start to coverage duration (without tick marks)
                                         Slider(
                                             value: $parameters.analysisFIRTimeWindowEnd,
-                                            in: (parameters.analysisFIRTimeWindowStart + 1.0)...parameters.analysisFIRCoverage,
-                                            step: 1.0
+                                            in: (parameters.analysisFIRTimeWindowStart + 1.0)...parameters.analysisFIRCoverage
                                         )
                                         .onChange(of: parameters.analysisFIRTimeWindowEnd) { _, _ in
                                             onParameterChanged()
                                             onForceRefresh() // Force immediate refresh
                                         }
                                         
-                                        // Text field for precise input
-                                        TextField("", value: $parameters.analysisFIRTimeWindowEnd, format: .number)
+                                        // Text field for precise input with one decimal place
+                                        TextField("", value: $parameters.analysisFIRTimeWindowEnd, format: .number.precision(.fractionLength(1)))
                                             .multilineTextAlignment(.trailing)
                                             .frame(width: 70)
                                             .padding(6)
@@ -389,6 +400,23 @@ struct AnalysisTabView: View {
                                                 onParameterChanged() 
                                                 onForceRefresh() // Force immediate refresh
                                             }
+                                            
+                                        // Reset button
+                                        Button(action: {
+                                            parameters.analysisFIRTimeWindowEnd = parameters.getParameterMetadata(forParameter: "FIR Time Window End (s)").defaultValue
+                                            // Ensure end time is after start time
+                                            if parameters.analysisFIRTimeWindowEnd <= parameters.analysisFIRTimeWindowStart {
+                                                parameters.analysisFIRTimeWindowStart = max(0, parameters.analysisFIRTimeWindowEnd - 30.0)
+                                            }
+                                            onParameterChanged()
+                                            onForceRefresh()
+                                        }) {
+                                            Image(systemName: "arrow.counterclockwise")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.accentColor)
+                                        }
+                                        .buttonStyle(BorderlessButtonStyle())
+                                        .help("Reset to default value")
                                     }
                                 }
                                 .padding(.vertical, 4)

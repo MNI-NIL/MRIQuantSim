@@ -312,6 +312,7 @@
                     <li>Configure the <strong>Coverage Duration</strong> to control how far after stimulus onset the model extends (default 90s)</li>
                     <li>Select from multiple <strong>Response Magnitude Methods</strong> to quantify the overall response:</li>
                     <ul>
+                        <li><strong>Time Window</strong>: Averages FIR coefficients within a user-defined time window, with visual indicators on the chart (default method)</li>
                         <li><strong>Maximum Value</strong>: Reports the peak FIR coefficient (and its time)</li>
                         <li><strong>Mean Value</strong>: Averages all FIR coefficients over the coverage duration</li>
                         <li><strong>Mean of Positive Values</strong>: Averages only positive FIR coefficients</li>
@@ -378,6 +379,7 @@
             <li>Be aware that including too many FIR regressors without sufficient data can lead to overfitting</li>
             <li>Select the appropriate FIR Response Method based on your analysis needs:
                 <ul>
+                    <li><strong>Time Window</strong>: Best for focusing on a specific portion of the response, with transparent visual indicators on the chart showing the selected time window (default method)</li>
                     <li><strong>Maximum Value</strong>: Best for measuring peak response amplitude</li>
                     <li><strong>Mean Value</strong>: Best for measuring average response across the entire time period</li>
                     <li><strong>Mean of Positive Values</strong>: Best when response includes both positive and negative components and you're only interested in the positive response</li>

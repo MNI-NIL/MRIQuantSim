@@ -160,9 +160,9 @@ final class SimulationParameters {
         analysisRiseTimeConstant = 10.0 // seconds
         analysisFallTimeConstant = 5.0 // seconds
         analysisFIRCoverage = 90.0 // seconds - default FIR coverage duration
-        analysisFIRResponseMethodString = FIRResponseMethod.maximum.rawValue // default to maximum FIR response method
-        analysisFIRTimeWindowStart = 10.0 // seconds - default start time for time window method
-        analysisFIRTimeWindowEnd = 30.0 // seconds - default end time for time window method
+        analysisFIRResponseMethodString = FIRResponseMethod.timeWindow.rawValue // default to time window FIR response method
+        analysisFIRTimeWindowStart = 30.0 // seconds - default start time for time window method
+        analysisFIRTimeWindowEnd = 60.0 // seconds - default end time for time window method
         
         // Noise Parameters
         co2VarianceFrequency = 0.05 // Hz
@@ -281,9 +281,9 @@ final class SimulationParameters {
         case "FIR Coverage Duration (s)":
             return ParameterMetadata(defaultValue: 90.0, minValue: 30.0, maxValue: 150.0, step: 10.0)
         case "FIR Time Window Start (s)":
-            return ParameterMetadata(defaultValue: 10.0, minValue: 0.0, maxValue: 150.0, step: 1.0)
-        case "FIR Time Window End (s)":
             return ParameterMetadata(defaultValue: 30.0, minValue: 0.0, maxValue: 150.0, step: 1.0)
+        case "FIR Time Window End (s)":
+            return ParameterMetadata(defaultValue: 60.0, minValue: 0.0, maxValue: 150.0, step: 1.0)
         // Signal Parameters
         case "CO₂ Sampling Rate (Hz)":
             return ParameterMetadata(defaultValue: 10.0, minValue: 1.0, maxValue: 20.0, step: 1.0)

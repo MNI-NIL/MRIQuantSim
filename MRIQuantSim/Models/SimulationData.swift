@@ -952,7 +952,7 @@ class SimulationData: ObservableObject {
             let samplesInCoverage = Int(parameters.analysisFIRCoverage * samplesPerSecond)
             firRegressorCount = samplesInCoverage
             
-            print("FIR model: Creating \(firRegressorCount) regressors for \(parameters.analysisFIRCoverage)s coverage")
+            // Calculate regressors based on coverage and sampling rate
             
             // Generate FIR regressors
             // First, create a basic boxcar pattern (block design) to use as reference
@@ -976,7 +976,7 @@ class SimulationData: ObservableObject {
                 }
             }
             
-            print("FIR model: Found \(blockOnsets.count) block onsets")
+            // Store block onsets for FIR regressor generation
             
             // Generate FIR regressors
             for offset in 0..<firRegressorCount {
@@ -995,9 +995,8 @@ class SimulationData: ObservableObject {
                 // Add this regressor to the design matrix
                 designMatrix.append(firRegressor)
                 
-                // Debug: Print non-zero elements in each regressor
-                let nonZeroCount = firRegressor.filter { $0 > 0 }.count
-                print("FIR regressor \(offset): has \(nonZeroCount) non-zero elements")
+                // Count non-zero elements in each regressor (useful for validation)
+                let _ = firRegressor.filter { $0 > 0 }.count
             }
         } else {
             // For non-FIR models (Boxcar or Exponential), just add a single response regressor
@@ -1073,13 +1072,8 @@ class SimulationData: ObservableObject {
                 firRegressorCount: firRegressorCount
             )
             
-            // Log which method we're using for the FIR response
-            print("FIR model metrics:")
-            print("  - Response method: \(firResponseMethod)")
-            print("  - Response magnitude: \(firResponseMagnitude)")
-            if case .maximum = firResponseMethod {
-                print("  - Time to max response: \(firTimeToMaxResponse)s")
-            }
+            // Store FIR response information
+            // These details are used for reporting in the UI
             
             // Find constant term index (follows all the FIR regressors)
             let constTermIndex = firRegressorCount
@@ -1089,14 +1083,11 @@ class SimulationData: ObservableObject {
                 let baseline = abs(betaParams[constTermIndex])
                 if baseline > 0 {
                     percentChangeMetric = (firResponseMagnitude / baseline) * 100.0
-                    print("  - Percent change: \(percentChangeMetric)%")
                 } else {
                     percentChangeMetric = 0.0
-                    print("  - Percent change: 0% (baseline is zero)")
                 }
             } else {
                 percentChangeMetric = 0.0
-                print("  - Percent change: 0% (no constant term)")
             }
         } else {
             // For Boxcar and Exponential models, use the standard approach
@@ -1177,11 +1168,10 @@ class SimulationData: ObservableObject {
                     mriDetrendedSignal[i] = mriRawSignal[i] - trendComponents
                 }
                 
-                print("FIR detrending: Removing drift components starting at index \(driftStartIndex)")
+                // Subtract drift components from raw signal to get detrended signal
             } else {
                 // If no drift components, detrended signal equals raw signal
                 mriDetrendedSignal = mriRawSignal
-                print("FIR detrending: No drift components found, detrended = raw")
             }
         } else {
             // For non-FIR models (Boxcar or Exponential)
@@ -1221,11 +1211,7 @@ class SimulationData: ObservableObject {
             // Contrast is the FIR response magnitude (already calculated)
             contrast = firResponseMagnitude
             
-            // Debug info for SNR and CNR
-            print("FIR model SNR/CNR:")
-            print("  - Signal (baseline): \(signal)")
-            print("  - Contrast (FIR response): \(contrast)")
-            print("  - Noise RMS: \(noiseRMS)")
+            // Store signal and contrast values for SNR and CNR calculations
         } else {
             // For Boxcar and Exponential models
             
@@ -1254,19 +1240,7 @@ class SimulationData: ObservableObject {
             contrastToNoiseRatio = 0.0
         }
         
-        print("Model terms:")
-        print("  - Constant: \(parameters.includeConstantTerm)")
-        print("  - Linear: \(parameters.includeLinearTerm)")
-        print("  - Quadratic: \(parameters.includeQuadraticTerm)")
-        print("  - Cubic: \(parameters.includeCubicTerm)")
-        print("MRI Series count: \(mriRawSignal.count)")
-        print("Calculated metrics:")
-        print("  - Signal: \(signal)")
-        print("  - Contrast: \(contrast)")
-        print("  - Noise RMS: \(noiseRMS)")
-        print("  - SNR: \(signalToNoiseRatio)")
-        print("  - CNR: \(contrastToNoiseRatio)")
-        print("  - % Change: \(percentChangeMetric)")
+        // Metrics calculation complete
     }
     
     // Calculate Root Mean Square (RMS) of a data array

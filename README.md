@@ -69,6 +69,7 @@ The application now includes support for Finite Impulse Response (FIR) modeling 
 - **Flexible Response Modeling**: FIR models estimate the hemodynamic response at each time point
 - **Coverage Duration Control**: Set how far after stimulus onset the FIR model extends (default 90s)
 - **Multiple Response Methods**: Choose from different methods to calculate overall response magnitude:
+  - *Time Window*: Averages FIR coefficients within a user-defined time window (default)
   - *Maximum Value*: Uses the peak FIR coefficient
   - *Mean Value*: Averages all FIR coefficients
   - *Mean of Positive Values*: Averages only positive coefficients
@@ -94,7 +95,9 @@ The application now supports multiple response shape types:
   - *Fall Time Constant*: Controls the speed of response decay
 - **FIR (Finite Impulse Response)**: Flexible model that estimates response amplitude at each time point
   - *Coverage Duration*: Controls how far after stimulus onset the model extends
-  - *Response Method*: Select how to calculate the overall response (Maximum, Mean, Mean of Positive)
+  - *Response Method*: Select how to calculate the overall response:
+    - Time Window: Define specific start/end times for averaging coefficients (with visual indicators)
+    - Maximum, Mean, Mean of Positive: Alternative calculation methods
   - *Response Magnitude*: Automatically calculates the overall response magnitude across regressors
 
 ### Independent Analysis Models
