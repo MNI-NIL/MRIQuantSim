@@ -87,9 +87,9 @@ struct MRIQuantSimApp: App {
                 .sheet(isPresented: $isShowingSettings) {
                     SettingsView(onParameterChanged: simulator.parameterChanged)
                 }
-                // Set default window size appropriate for a MacBook Air
-                .frame(minWidth: 1280, idealWidth: 1280, maxWidth: .infinity,
-                       minHeight: 800, idealHeight: 800, maxHeight: .infinity)
+                // Set default window size appropriate for a MacBook Air with extra space for charts
+                .frame(minWidth: 1400, idealWidth: 1450, maxWidth: .infinity,
+                       minHeight: 800, idealHeight: 840, maxHeight: .infinity)
         }
         .windowStyle(TitleBarWindowStyle())
         .windowResizability(.contentSize)

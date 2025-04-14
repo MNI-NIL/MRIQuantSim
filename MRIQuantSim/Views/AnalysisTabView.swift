@@ -109,11 +109,12 @@ struct AnalysisTabView: View {
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 12) {
-                                // Slider with appropriate range and step
+                                // Slider with range from parameter metadata
+                                let metadata = parameters.getParameterMetadata(forParameter: "Rise Time Constant (s)")
                                 Slider(
                                     value: $parameters.analysisRiseTimeConstant,
-                                    in: 1.0...30.0,
-                                    step: 1.0
+                                    in: metadata.minValue...metadata.maxValue,
+                                    step: metadata.step
                                 )
                                 .onChange(of: parameters.analysisRiseTimeConstant) { _, _ in
                                     onParameterChanged()
@@ -139,7 +140,7 @@ struct AnalysisTabView: View {
                                 
                                 // Reset button - to the right of the text field
                                 Button(action: {
-                                    parameters.analysisRiseTimeConstant = 10.0 // Default value
+                                    parameters.analysisRiseTimeConstant = parameters.getParameterMetadata(forParameter: "Rise Time Constant (s)").defaultValue
                                     onParameterChanged()
                                     onForceRefresh()
                                 }) {
@@ -160,11 +161,12 @@ struct AnalysisTabView: View {
                                 .foregroundColor(.secondary)
                             
                             HStack(spacing: 12) {
-                                // Slider with appropriate range and step
+                                // Slider with range from parameter metadata
+                                let metadata = parameters.getParameterMetadata(forParameter: "Fall Time Constant (s)")
                                 Slider(
                                     value: $parameters.analysisFallTimeConstant,
-                                    in: 1.0...30.0,
-                                    step: 1.0
+                                    in: metadata.minValue...metadata.maxValue,
+                                    step: metadata.step
                                 )
                                 .onChange(of: parameters.analysisFallTimeConstant) { _, _ in
                                     onParameterChanged()
@@ -190,7 +192,7 @@ struct AnalysisTabView: View {
                                 
                                 // Reset button - to the right of the text field
                                 Button(action: {
-                                    parameters.analysisFallTimeConstant = 5.0 // Default value
+                                    parameters.analysisFallTimeConstant = parameters.getParameterMetadata(forParameter: "Fall Time Constant (s)").defaultValue
                                     onParameterChanged()
                                     onForceRefresh()
                                 }) {
@@ -387,13 +389,102 @@ struct AnalysisTabView: View {
                 
                 // Model Information tooltip
                 HStack {
-                    Spacer()
-                    
-                    VStack(alignment: .trailing, spacing: 4) {
+                    VStack(alignment: .leading, spacing: 4) {
                         Text("Note: Green values show the true parameters from the simulation.")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    
+                    Spacer()
+                }
+                .padding(.vertical, 4)
+                
+                // SNR and CNR card
+                VStack(spacing: 0) {
+                    // Header with accent color background
+                    HStack {
+                        Text("Signal & Contrast Metrics")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        Spacer()
+                    }
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 12)
+                    .background(Color.accentColor)
+                    
+                    // SNR and CNR metrics table
+                    VStack(spacing: 0) {
+                        // Headers
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Metric")
+                                .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
+                            Spacer()
+                            Text("Value")
+                                .frame(width: 80, alignment: .trailing)
+                            Text("Units")
+                                .frame(width: 80, alignment: .trailing)
+                        }
+                        .font(.subheadline.bold())
+                        .foregroundColor(.secondary)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(white: colorScheme == .dark ? 0.2 : 0.95))
+                        
+                        Divider()
+                        
+                        // SNR row
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Signal-to-Noise")
+                                .font(.subheadline)
+                                .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
+                            Spacer()
+                            Text(String(format: "%.2f", simulationData.signalToNoiseRatio))
+                                .foregroundColor(.primary)
+                                .frame(width: 80, alignment: .trailing)
+                            Text("ratio")
+                                .foregroundColor(.secondary)
+                                .frame(width: 80, alignment: .trailing)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(white: colorScheme == .dark ? 0.17 : 0.97))
+                        
+                        Divider()
+                        
+                        // CNR row
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Contrast-to-Noise")
+                                .font(.subheadline)
+                                .frame(minWidth: 80, idealWidth: 120, maxWidth: 150, alignment: .leading)
+                            Spacer()
+                            Text(String(format: "%.2f", simulationData.contrastToNoiseRatio))
+                                .foregroundColor(.primary)
+                                .frame(width: 80, alignment: .trailing)
+                            Text("ratio")
+                                .foregroundColor(.secondary)
+                                .frame(width: 80, alignment: .trailing)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(white: colorScheme == .dark ? 0.15 : 1.0))
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
+                )
+                .id("snrCnrMetrics-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(simulationData.signalToNoiseRatio)-\(simulationData.contrastToNoiseRatio)")
+                
+                // SNR and CNR information tooltip
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("SNR = Signal/Noise, CNR = Contrast/Noise, where Noise is the RMS of residual error.")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    
+                    Spacer()
                 }
                 .padding(.top, 4)
             }
@@ -440,6 +531,8 @@ struct AnalysisTabView: View {
         // Return the name for the included term at position 'index'
         return includedIndex < allTerms.count ? allTerms[includedIndex] : "Parameter \(index)"
     }
+    
+    // MARK: - Helper methods
     
     // MARK: - Color helpers for dark mode support
     

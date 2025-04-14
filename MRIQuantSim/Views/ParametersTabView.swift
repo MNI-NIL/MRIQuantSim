@@ -334,20 +334,22 @@ struct ParametersTabView: View {
     }
     
     private func parameterRow(title: String, value: Binding<Double>, disabled: Bool = false) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
+        // Get parameter metadata directly from the model
+        let metadata = parameters.getParameterMetadata(forParameter: title)
+        
+        return VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.subheadline)
                 .foregroundColor(.secondary)
             
             HStack(spacing: 12) {
-                // Slider with appropriate range based on parameter type
+                // Slider with range and step from parameter metadata
                 Slider(
                     value: value,
-                    in: getRange(for: title),
-                    step: getStep(for: title)
+                    in: metadata.minValue...metadata.maxValue,
+                    step: metadata.step
                 )
                 .onChange(of: value.wrappedValue) { _, _ in 
-                    // Use a debounce approach for sliders to avoid excessive updates
                     onParameterChanged()
                 }
                 .disabled(disabled)
@@ -369,10 +371,8 @@ struct ParametersTabView: View {
                 
                 // Reset button - now next to the text field
                 Button(action: {
-                    // Get default value from parameters
-                    let defaultValue = parameters.getDefaultValue(forParameter: title)
-                    // Update the value
-                    value.wrappedValue = defaultValue
+                    // Set to the default value from metadata
+                    value.wrappedValue = metadata.defaultValue
                     // Notify of parameter change
                     onParameterChanged()
                 }) {
@@ -388,79 +388,15 @@ struct ParametersTabView: View {
         .padding(.vertical, 4)
     }
     
-    // Helper functions to determine appropriate slider ranges based on parameter name
+    // These helper functions are no longer needed since we're using metadata directly in parameterRow
+    // Keeping empty implementations for compatibility until all references can be removed
     private func getRange(for parameterName: String) -> ClosedRange<Double> {
-        switch parameterName {
-        // Specific parameters with custom ranges
-        case "CO₂ Response Amplitude (mmHg)":
-            return 0.0...50.0
-        case "MRI Response Amplitude (a.u.)":
-            return 0.0...200.0
-        case "MRI Baseline Signal (a.u.)":
-            return 800.0...2000.0
-        case "CO₂ Sampling Rate (Hz)":
-            return 1.0...50.0
-        case "Breathing Rate (breaths/min)":
-            return 5.0...30.0
-        case "MRI Sampling Interval (s)":
-            return 0.5...10.0
-            
-        // General parameter types
-        case _ where parameterName.contains("Amplitude") && !parameterName.contains("Response"):
-            return 0.0...50.0
-        case _ where parameterName.contains("Noise"):
-            return 0.0...50.0
-        case _ where parameterName.contains("Drift"):
-            return -20.0...20.0
-        case _ where parameterName.contains("Time Constant"):
-            return 1.0...30.0
-        case _ where parameterName.contains("Breathing Rate"):
-            return 5.0...30.0
-        case _ where parameterName.contains("Sampling Rate"):
-            return 1.0...50.0
-        case _ where parameterName.contains("Interval"):
-            return 0.5...10.0
-        case _ where parameterName.contains("Frequency"):
-            return 0.05...1.0
-        case _ where parameterName.contains("Variance"):
-            return 0.0...10.0
-        default:
-            return 0.0...100.0
-        }
+        let metadata = parameters.getParameterMetadata(forParameter: parameterName)
+        return metadata.minValue...metadata.maxValue
     }
     
     private func getStep(for parameterName: String) -> Double {
-        switch parameterName {
-        // Specific parameters with custom step values
-        case "MRI Baseline Signal (a.u.)":
-            return 50.0
-        case "CO₂ Response Amplitude (mmHg)":
-            return 1.0
-        case "MRI Response Amplitude (a.u.)":
-            return 5.0
-            
-        // Parameter types
-        case _ where parameterName.contains("Frequency"):
-            return 0.05
-        case _ where parameterName.contains("Time Constant"):
-            return 1.0
-        case _ where parameterName.contains("Interval"):
-            return 0.5
-        case _ where parameterName.contains("Sampling"):
-            return 1.0
-        case _ where parameterName.contains("Breathing"):
-            return 1.0
-        case _ where parameterName.contains("Drift"):
-            return 2.0
-        case _ where parameterName.contains("Noise"):
-            return 2.0
-        case _ where parameterName.contains("Amplitude"):
-            return 5.0
-        case _ where parameterName.contains("Variance"):
-            return 0.5
-        default:
-            return 1.0
-        }
+        return parameters.getParameterMetadata(forParameter: parameterName).step
     }
     
     // MARK: - Color helpers for dark mode support

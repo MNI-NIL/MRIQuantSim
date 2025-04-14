@@ -230,60 +230,72 @@ final class SimulationParameters {
         includeCubicTerm = defaults.includeCubicTerm
     }
     
-    // Function to get the default value for a specific parameter
-    func getDefaultValue(forParameter paramName: String) -> Double {
-        let defaults = SimulationParameters()
-        
+    // Parameter metadata for UI controls
+    struct ParameterMetadata {
+        let defaultValue: Double
+        let minValue: Double
+        let maxValue: Double
+        let step: Double
+    }
+    
+    // Function to get parameter metadata (default, range, step) for a parameter
+    func getParameterMetadata(forParameter paramName: String) -> ParameterMetadata {
         switch paramName {
         // Signal Parameters
         case "CO₂ Sampling Rate (Hz)":
-            return defaults.co2SamplingRate
+            return ParameterMetadata(defaultValue: 10.0, minValue: 1.0, maxValue: 20.0, step: 1.0)
         case "Breathing Rate (breaths/min)":
-            return defaults.breathingRate
+            return ParameterMetadata(defaultValue: 15.0, minValue: 5.0, maxValue: 30.0, step: 1.0)
         case "MRI Sampling Interval (s)":
-            return defaults.mriSamplingInterval
+            return ParameterMetadata(defaultValue: 2.0, minValue: 0.5, maxValue: 5.0, step: 0.5)
         case "MRI Baseline Signal (a.u.)":
-            return defaults.mriBaselineSignal
+            return ParameterMetadata(defaultValue: 1200.0, minValue: 800.0, maxValue: 1600.0, step: 50.0)
         case "MRI Response Amplitude (a.u.)":
-            return defaults.mriResponseAmplitude
+            return ParameterMetadata(defaultValue: 100.0, minValue: 0.0, maxValue: 200.0, step: 5.0)
         case "CO₂ Response Amplitude (mmHg)":
-            return defaults.co2ResponseAmplitude
+            return ParameterMetadata(defaultValue: 10.0, minValue: 0.0, maxValue: 20.0, step: 1.0)
             
         // Response Shape Parameters
         case "Rise Time Constant (s)":
-            return defaults.responseRiseTimeConstant
+            return ParameterMetadata(defaultValue: 10.0, minValue: 1.0, maxValue: 20.0, step: 1.0)
         case "Fall Time Constant (s)":
-            return defaults.responseFallTimeConstant
+            return ParameterMetadata(defaultValue: 5.0, minValue: 1.0, maxValue: 10.0, step: 1.0)
             
         // Noise Parameters
         case "CO₂ Variance Frequency (Hz)":
-            return defaults.co2VarianceFrequency
+            return ParameterMetadata(defaultValue: 0.05, minValue: 0.01, maxValue: 0.2, step: 0.01)
         case "CO₂ Frequency Variance":
-            return defaults.co2VarianceAmplitude
+            return ParameterMetadata(defaultValue: 1.5, minValue: 0.0, maxValue: 3.0, step: 0.1)
         case "CO₂ Amplitude Variance (mmHg)":
-            return defaults.co2AmplitudeVariance
+            return ParameterMetadata(defaultValue: 0.5, minValue: 0.0, maxValue: 2.0, step: 0.1)
         case "MRI Noise Amplitude (a.u.)":
-            return defaults.mriNoiseAmplitude
+            return ParameterMetadata(defaultValue: 5.0, minValue: 0.0, maxValue: 20.0, step: 1.0)
             
         // Drift Parameters - CO2
         case "CO₂ Linear Drift (mmHg)":
-            return defaults.co2LinearDrift
+            return ParameterMetadata(defaultValue: 5.0, minValue: -10.0, maxValue: 10.0, step: 1.0)
         case "CO₂ Quadratic Drift (mmHg)":
-            return defaults.co2QuadraticDrift
+            return ParameterMetadata(defaultValue: -5.5, minValue: -10.0, maxValue: 10.0, step: 1.0)
         case "CO₂ Cubic Drift (mmHg)":
-            return defaults.co2CubicDrift
+            return ParameterMetadata(defaultValue: -10.0, minValue: -20.0, maxValue: 10.0, step: 1.0)
             
         // Drift Parameters - MRI
         case "MRI Linear Drift (%)":
-            return defaults.mriLinearDrift
+            return ParameterMetadata(defaultValue: 3.0, minValue: -10.0, maxValue: 10.0, step: 1.0)
         case "MRI Quadratic Drift (%)":
-            return defaults.mriQuadraticDrift
+            return ParameterMetadata(defaultValue: 3.0, minValue: -10.0, maxValue: 10.0, step: 1.0)
         case "MRI Cubic Drift (%)":
-            return defaults.mriCubicDrift
+            return ParameterMetadata(defaultValue: 4.0, minValue: -10.0, maxValue: 10.0, step: 1.0)
             
+        // Fallback with generic values
         default:
-            return 0.0
+            return ParameterMetadata(defaultValue: 0.0, minValue: 0.0, maxValue: 10.0, step: 1.0)
         }
+    }
+    
+    // Function to get just the default value for a specific parameter (for backward compatibility)
+    func getDefaultValue(forParameter paramName: String) -> Double {
+        return getParameterMetadata(forParameter: paramName).defaultValue
     }
     
     // Function to get the default boolean value for toggle parameters
