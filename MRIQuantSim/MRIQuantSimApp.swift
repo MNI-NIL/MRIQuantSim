@@ -17,9 +17,49 @@ struct MRIQuantSimApp: App {
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
         do {
+            // First try to create the container normally
             return try ModelContainer(for: schema, configurations: [modelConfiguration])
         } catch {
-            fatalError("Could not create ModelContainer: \(error)")
+            // If regular creation fails, try to find and delete the old store file
+            print("Failed to create ModelContainer: \(error). Attempting recovery...")
+            
+            // Get default store URL - check both container and non-container locations
+            var storeURL: URL?
+            
+            // First try the container path (sandboxed)
+            if let containerURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: "net.endoquant.MRIQuantSim") {
+                let containerStoreURL = containerURL.appendingPathComponent("Library/Application Support/default.store")
+                if FileManager.default.fileExists(atPath: containerStoreURL.path) {
+                    storeURL = containerStoreURL
+                    print("Found store in container at: \(containerStoreURL.path)")
+                }
+            }
+            
+            // If not found in container, try regular application support directory
+            if storeURL == nil, let applicationSupportURL = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first {
+                let appSupportStoreURL = applicationSupportURL.appendingPathComponent("default.store")
+                if FileManager.default.fileExists(atPath: appSupportStoreURL.path) {
+                    storeURL = appSupportStoreURL
+                    print("Found store in application support at: \(appSupportStoreURL.path)")
+                }
+            }
+            
+            // If we found a store URL, delete it to start fresh
+            if let storeURL = storeURL {
+                do {
+                    // Delete the file
+                    try FileManager.default.removeItem(at: storeURL)
+                    print("Deleted existing store file at: \(storeURL.path)")
+                    
+                    // Now try to create a fresh container
+                    return try ModelContainer(for: schema, configurations: [modelConfiguration])
+                } catch let deleteError {
+                    print("Failed to delete store file: \(deleteError)")
+                }
+            }
+            
+            // If we get here, all recovery attempts failed
+            fatalError("Could not create ModelContainer after recovery attempt: \(error)")
         }
     }()
     

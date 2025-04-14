@@ -97,6 +97,7 @@ final class SimulationParameters {
     var showModelOverlay: Bool
     var showResidualError: Bool
     var useMRIDynamicRange: Bool
+    var excludeBaselineFromChart: Bool
     var enableCO2Variance: Bool
     var enableMRINoise: Bool
     var enableCO2Drift: Bool
@@ -155,6 +156,7 @@ final class SimulationParameters {
         showModelOverlay = true
         showResidualError = false
         useMRIDynamicRange = true
+        excludeBaselineFromChart = true // Default to exclude baseline as it's much larger
         enableCO2Variance = true
         enableMRINoise = true
         enableCO2Drift = true
@@ -215,6 +217,7 @@ final class SimulationParameters {
         showModelOverlay = defaults.showModelOverlay
         showResidualError = defaults.showResidualError
         useMRIDynamicRange = defaults.useMRIDynamicRange
+        excludeBaselineFromChart = defaults.excludeBaselineFromChart
         enableCO2Variance = defaults.enableCO2Variance
         enableMRINoise = defaults.enableMRINoise
         enableCO2Drift = defaults.enableCO2Drift

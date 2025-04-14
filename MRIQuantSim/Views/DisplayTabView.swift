@@ -10,6 +10,7 @@ import SwiftUI
 struct DisplayTabView: View {
     @Binding var parameters: SimulationParameters
     var onParameterChanged: () -> Void
+    var onForceRefresh: () -> Void = {} // Add optional callback to force UI refresh
     @Environment(\.colorScheme) var colorScheme
     
     var body: some View {
@@ -28,13 +29,19 @@ struct DisplayTabView: View {
                                 ToggleButton(
                                     title: "Raw",
                                     isOn: $parameters.showCO2Raw,
-                                    onChange: { onParameterChanged() }
+                                    onChange: { 
+                                        onParameterChanged() 
+                                        onForceRefresh()
+                                    }
                                 )
                                 
                                 ToggleButton(
                                     title: "End-Tidal",
                                     isOn: $parameters.showCO2EndTidal,
-                                    onChange: { onParameterChanged() }
+                                    onChange: { 
+                                        onParameterChanged() 
+                                        onForceRefresh()
+                                    }
                                 )
                                 
                                 Spacer()
@@ -51,25 +58,37 @@ struct DisplayTabView: View {
                                 ToggleButton(
                                     title: "Raw",
                                     isOn: $parameters.showMRIRaw,
-                                    onChange: { onParameterChanged() }
+                                    onChange: { 
+                                        onParameterChanged() 
+                                        onForceRefresh()
+                                    }
                                 )
                                 
                                 ToggleButton(
                                     title: "Model Fit",
                                     isOn: $parameters.showModelOverlay,
-                                    onChange: { onParameterChanged() }
+                                    onChange: { 
+                                        onParameterChanged() 
+                                        onForceRefresh()
+                                    }
                                 )
                                 
                                 ToggleButton(
                                     title: "Detrended",
                                     isOn: $parameters.showMRIDetrended,
-                                    onChange: { onParameterChanged() }
+                                    onChange: { 
+                                        onParameterChanged() 
+                                        onForceRefresh()
+                                    }
                                 )
                                 
                                 ToggleButton(
                                     title: "Residuals",
                                     isOn: $parameters.showResidualError,
-                                    onChange: { onParameterChanged() }
+                                    onChange: { 
+                                        onParameterChanged() 
+                                        onForceRefresh()
+                                    }
                                 )
                                 
                                 Spacer()
@@ -85,7 +104,10 @@ struct DisplayTabView: View {
                             ToggleButton(
                                 title: "Zoom to MRI Dynamic Range",
                                 isOn: $parameters.useMRIDynamicRange,
-                                onChange: { onParameterChanged() }
+                                onChange: { 
+                                    onParameterChanged() 
+                                    onForceRefresh()
+                                }
                             )
                             
                             Spacer()
@@ -97,6 +119,8 @@ struct DisplayTabView: View {
                             .foregroundColor(.secondary)
                     }
                 }
+                
+                // Note: Parameter chart options removed since each parameter now has its own chart with individual scaling
                 
                 // Note: Noise regeneration button has been moved to the Signal tab
             }

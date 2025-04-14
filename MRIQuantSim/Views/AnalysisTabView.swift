@@ -24,14 +24,26 @@ struct AnalysisTabView: View {
                          !parameters.includeQuadraticTerm && 
                          !parameters.includeCubicTerm
         
+        // Log the model terms state
+        print("Model term toggle detected:")
+        print("  - Constant: \(parameters.includeConstantTerm)")
+        print("  - Linear: \(parameters.includeLinearTerm)")
+        print("  - Quadratic: \(parameters.includeQuadraticTerm)")
+        print("  - Cubic: \(parameters.includeCubicTerm)")
+        
         // If all would be off, turn constant term back on
         if allTermsOff {
             parameters.includeConstantTerm = true
             print("Forcing constant term to remain on")
         }
         
-        // Always call parameter changed to update the model
+        // Call parameter changed to update the model
         onParameterChanged()
+        
+        // Force UI refresh
+        onForceRefresh()
+        
+        print("Model terms toggled, forcing UI refresh")
     }
     
     var body: some View {
