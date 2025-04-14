@@ -474,7 +474,7 @@ struct AnalysisTabView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color.accentColor.opacity(0.3), lineWidth: 1)
                 )
-                .id("snrCnrMetrics-\(simulationData.signalToNoiseRatio)-\(simulationData.contrastToNoiseRatio)")
+                .id("snrCnrMetrics-\(parameters.includeConstantTerm)-\(parameters.includeLinearTerm)-\(parameters.includeQuadraticTerm)-\(parameters.includeCubicTerm)-\(simulationData.signalToNoiseRatio)-\(simulationData.contrastToNoiseRatio)")
                 
                 // SNR and CNR information tooltip
                 HStack {
@@ -531,6 +531,8 @@ struct AnalysisTabView: View {
         // Return the name for the included term at position 'index'
         return includedIndex < allTerms.count ? allTerms[includedIndex] : "Parameter \(index)"
     }
+    
+    // MARK: - Helper methods
     
     // MARK: - Color helpers for dark mode support
     

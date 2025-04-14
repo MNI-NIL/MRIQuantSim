@@ -635,7 +635,9 @@ struct ContentView: View {
                         simulator.parameters.includeConstantTerm,
                         simulator.parameters.includeLinearTerm, 
                         simulator.parameters.includeQuadraticTerm,
-                        simulator.parameters.includeCubicTerm
+                        simulator.parameters.includeCubicTerm,
+                        simulator.simulationData.signalToNoiseRatio,
+                        simulator.simulationData.contrastToNoiseRatio
                     )
                     
                     parameterChartContent
@@ -725,12 +727,22 @@ struct ContentView: View {
         var name: String
         var estimatedValue: Double
         var trueValue: Double
+        var showTrueValue: Bool = true
         
-        // Additional initializer with specified parameter name to make the ID more predictable
+        // Default initializer with all parameters showing true values
         init(name: String, estimatedValue: Double, trueValue: Double) {
             self.name = name
             self.estimatedValue = estimatedValue
             self.trueValue = trueValue
+            self.showTrueValue = true
+        }
+        
+        // Initializer with option to hide true value (for SNR/CNR metrics)
+        init(name: String, estimatedValue: Double, trueValue: Double, showTrueValue: Bool) {
+            self.name = name
+            self.estimatedValue = estimatedValue
+            self.trueValue = trueValue
+            self.showTrueValue = showTrueValue
         }
     }
     
@@ -745,7 +757,23 @@ struct ContentView: View {
             return []
         }
         
-        // Add percent change parameter first - this is calculated from other parameters
+        // Add SNR parameter first
+        result.append(ParameterData(
+            name: "SNR",
+            estimatedValue: simData.signalToNoiseRatio,
+            trueValue: 0.0, // No true value for SNR
+            showTrueValue: false
+        ))
+        
+        // Add CNR parameter second 
+        result.append(ParameterData(
+            name: "CNR",
+            estimatedValue: simData.contrastToNoiseRatio,
+            trueValue: 0.0, // No true value for CNR
+            showTrueValue: false
+        ))
+        
+        // Add percent change parameter third - this is calculated from other parameters
         result.append(ParameterData(
             name: "% Change",
             estimatedValue: simData.percentChangeMetric,
@@ -840,8 +868,16 @@ struct ContentView: View {
         return result
     }
     
-    // Create a mini-chart for a single parameter
-    private func singleParameterChart(data: ParameterData) -> some View {
+    // Function for rendering charts with two types:
+    // 1) Original comparison charts (for beta params)
+    // 2) Single value charts (for SNR/CNR)
+    private func singleParameterChart(data: ParameterData) -> AnyView {
+        if !data.showTrueValue {
+            // For SNR and CNR, use single-bar chart with no comparison
+            return AnyView(singleValueChart(name: data.name, value: data.estimatedValue))
+        } 
+        
+        // FOR COMPARISON PARAMETERS: Use the original chart implementation unchanged
         // Calculate a good y-range for this parameter
         let maxValue = max(data.estimatedValue, data.trueValue)
         let minValue = min(min(data.estimatedValue, data.trueValue), 0) // Include 0 if both values are positive
@@ -851,63 +887,135 @@ struct ContentView: View {
         let paddedMax = maxValue + range * 0.15 // Add 15% padding at top
         let paddedMin = minValue < 0 ? minValue * 1.15 : 0 // More padding below zero or use zero as minimum
         
-        return Chart {
-            // Estimated value bar
-            BarMark(
-                x: .value("Type", 0), // Use 0 instead of "Est" for positioning
-                y: .value("Value", data.estimatedValue),
-                width: .fixed(30) // Set fixed width for consistent appearance
-            )
-            .foregroundStyle(Color.blue.opacity(0.7))
-            .annotation(position: .top) {
-                if paddedMax - paddedMin > 5 { // Only show values for larger ranges
-                    Text(String(format: "%.1f", data.estimatedValue))
-                        .font(.system(size: 8))
-                        .foregroundColor(.blue)
-                }
-            }
-            
-            // True value bar
-            BarMark(
-                x: .value("Type", 1), // Use 1 instead of "True" for positioning
-                y: .value("Value", data.trueValue),
-                width: .fixed(30) // Set fixed width for consistent appearance
-            )
-            .foregroundStyle(Color.green.opacity(0.7))
-            .annotation(position: .top) {
-                if paddedMax - paddedMin > 5 { // Only show values for larger ranges
-                    Text(String(format: "%.1f", data.trueValue))
-                        .font(.system(size: 8))
-                        .foregroundColor(.green)
-                }
-            }
-        }
-        .chartYScale(domain: paddedMin...paddedMax)
-        .chartYAxis {
-            // Ensure we have enough axis marks for visibility
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine()
-                AxisTick()
-                AxisValueLabel() {
-                    // Only show value if it's a whole number
-                    if let doubleValue = value.as(Double.self) {
-                        Text(String(format: "%.0f", doubleValue))
+        return AnyView(
+            Chart {
+                // Estimated value bar
+                BarMark(
+                    x: .value("Type", 0), // Use 0 instead of "Est" for positioning
+                    y: .value("Value", data.estimatedValue),
+                    width: .fixed(30) // Set fixed width for consistent appearance
+                )
+                .foregroundStyle(Color.blue.opacity(0.7))
+                .annotation(position: .top) {
+                    if paddedMax - paddedMin > 5 { // Only show values for larger ranges
+                        Text(String(format: "%.1f", data.estimatedValue))
                             .font(.system(size: 8))
+                            .foregroundColor(.blue)
+                    }
+                }
+                
+                // True value bar
+                BarMark(
+                    x: .value("Type", 1), // Use 1 instead of "True" for positioning
+                    y: .value("Value", data.trueValue),
+                    width: .fixed(30) // Set fixed width for consistent appearance
+                )
+                .foregroundStyle(Color.green.opacity(0.7))
+                .annotation(position: .top) {
+                    if paddedMax - paddedMin > 5 { // Only show values for larger ranges
+                        Text(String(format: "%.1f", data.trueValue))
+                            .font(.system(size: 8))
+                            .foregroundColor(.green)
                     }
                 }
             }
-        }
-        .chartXAxis(.hidden) // Hide the X-axis labels completely
-        .chartXScale(domain: -0.5...1.5) // Add some padding to x-axis for better bar spacing
-        // Set chart size with enough room for axis labels
-        .frame(height: 120)
-        .padding(.horizontal, 4)
-        .padding(.bottom, 8) // Extra padding at bottom to ensure Y-axis labels aren't clipped
+            .chartYScale(domain: paddedMin...paddedMax)
+            .chartYAxis {
+                // Ensure we have enough axis marks for visibility
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 4)) { value in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel() {
+                        // Only show value if it's a whole number
+                        if let doubleValue = value.as(Double.self) {
+                            Text(String(format: "%.0f", doubleValue))
+                                .font(.system(size: 8))
+                        }
+                    }
+                }
+            }
+            .chartXAxis(.hidden) // Hide the X-axis labels completely
+            .chartXScale(domain: -0.5...1.5) // Add some padding to x-axis for better bar spacing
+            // Set chart size with enough room for axis labels
+            .frame(height: 120)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 8) // Extra padding at bottom to ensure Y-axis labels aren't clipped
+        )
     }
     
-    // This function is not needed anymore as we use per-parameter scaling in singleParameterChart
-    
-    // Remove the container view and use a regular function
+    // Special chart for SNR and CNR that only shows one value
+    private func singleValueChart(name: String, value: Double) -> some View {
+        // Constants for thresholds
+        let thresholdValue = 10000.0  // Consider values above this to be effectively infinite
+        
+        // Check if value is valid (positive and not too large)
+        let isInfinite = !value.isFinite || value > thresholdValue
+        let isValidValue = value > 0 && !isInfinite
+        
+        // Calculate appropriate y-scale for the metric
+        let maxValue = isValidValue ? max(value * 1.2, 0.1) : 0.1
+        
+        // Use distinctive colors different from the blue/green of comparison charts
+        let barColor = name == "SNR" ? Color.orange.opacity(0.7) : Color.teal.opacity(0.7)
+        
+        return Chart {
+            // Only show bar if we have a valid value that's not too large
+            if isValidValue {
+                BarMark(
+                    x: .value("Position", 0),
+                    y: .value("Value", value),
+                    width: .fixed(45) // Wider since there's only one bar
+                )
+                .foregroundStyle(barColor)
+                .annotation(position: .top) {
+                    Text(String(format: "%.1f", value))
+                        .font(.system(size: 9))
+                        .foregroundColor(barColor)
+                }
+            }
+        }
+        .chartYScale(domain: 0...maxValue)
+        .chartYAxis {
+            // Only show axis labels if we have a valid value
+            if isValidValue {
+                AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) { value in
+                    AxisGridLine()
+                    AxisValueLabel {
+                        if let val = value.as(Double.self) {
+                            Text(String(format: "%.1f", val))
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                }
+            } else {
+                // Empty axis when value is invalid
+                AxisMarks { _ in }
+            }
+        }
+        .chartXAxis(.hidden)
+        .chartXScale(domain: -0.5...0.5) // Add padding on X-axis for consistency
+        // Set chart size with matching padding to comparison charts
+        .frame(height: 120)
+        .padding(.horizontal, 4)
+        .padding(.bottom, 8) // Match the bottom padding of comparison charts
+        .overlay(
+            // Show appropriate text for different states
+            Group {
+                if isInfinite {
+                    // Show infinity symbol for values above threshold
+                    Text("∞")
+                        .font(.system(size: 24))
+                        .foregroundColor(barColor.opacity(0.8))
+                } else if !isValidValue {
+                    // Show N/A for invalid values
+                    Text("N/A")
+                        .font(.system(size: 12))
+                        .foregroundColor(.secondary)
+                }
+            }
+        )
+    }
     
     // Helper to create a consistent card for each parameter
     private func parameterCard(for paramData: ParameterData) -> some View {
@@ -922,6 +1030,8 @@ struct ContentView: View {
             singleParameterChart(data: paramData)
                 .frame(width: 100)
                 .padding(.bottom, 4) // Extra padding at bottom within the chart area
+            
+            // No legend below the chart - original design
         }
         .frame(width: 115, height: 160) // Explicit frame size with more height
         .background(Color(NSColor.textBackgroundColor).opacity(0.4))
